@@ -355,6 +355,11 @@ static void Callback_SetGeometry(const struct retro_game_geometry *geometry)
 	// Nothing to do here yet
 }
 
+static void Callback_GetInputMaxUsers(unsigned int *max_users)
+{
+	*max_users = 1; // Hardcoded for now
+}
+
 static bool Callback_Environment(unsigned int cmd, void *data)
 {
 	switch (cmd)
@@ -399,6 +404,10 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 
 		case RETRO_ENVIRONMENT_SET_GEOMETRY:
 			Callback_SetGeometry(data);
+			break;
+
+		case RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS:
+			Callback_GetInputMaxUsers(data);
 			break;
 
 		default:
