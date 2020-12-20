@@ -19,6 +19,26 @@ static enum retro_pixel_format pixel_format;
 
 static bool quit;
 
+static struct
+{
+	bool up;
+	bool down;
+	bool left;
+	bool right;
+	bool a;
+	bool b;
+	bool x;
+	bool y;
+	bool start;
+	bool select;
+	bool l;
+	bool l2;
+	bool l3;
+	bool r;
+	bool r2;
+	bool r3;
+} retropad;
+
   ////////////////
  // Core stuff //
 ////////////////
@@ -217,48 +237,71 @@ static void DeinitAudio(void)
  // Callbacks //
 ///////////////
 
+static void Callback_GetCanDupe(bool *can_dupe)
+{
+	*can_dupe = true;
+}
+
+static void Callback_Shutdown(void)
+{
+	quit = true;
+}
+
+static bool Callback_SetPixelFormat(const enum retro_pixel_format *_pixel_format)
+{
+	switch (*_pixel_format)
+	{
+		case RETRO_PIXEL_FORMAT_0RGB1555:
+		case RETRO_PIXEL_FORMAT_XRGB8888:
+		case RETRO_PIXEL_FORMAT_RGB565:
+			pixel_format = *_pixel_format;
+			return true;
+
+		default:
+			return false;
+	}
+}
+
+static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
+{
+	frames_per_second = system_av_info->timing.fps;
+
+	DeinitVideo();
+	InitVideo(&system_av_info->geometry);
+
+	DeinitAudio();
+	InitAudio(system_av_info->timing.sample_rate);
+}
+
+static void Callback_SetGeometry(void)
+{
+	// Nothing to do here yet
+}
+
 static bool Callback_Environment(unsigned int cmd, void *data)
 {
 	switch (cmd)
 	{
 		case RETRO_ENVIRONMENT_GET_CAN_DUPE:
-			*(bool*)data = true;
+			Callback_GetCanDupe(data);
 			break;
 
 		case RETRO_ENVIRONMENT_SHUTDOWN:
-			quit = true;
+			Callback_Shutdown();
 			break;
 
 		case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
-			switch (*(enum retro_pixel_format*)data)
-			{
-				case RETRO_PIXEL_FORMAT_0RGB1555:
-				case RETRO_PIXEL_FORMAT_XRGB8888:
-				case RETRO_PIXEL_FORMAT_RGB565:
-					pixel_format = *(enum retro_pixel_format*)data;
-					break;
-
-				default:
-					return false;
-			}
+			if (!Callback_SetPixelFormat(data))
+				return false;
 
 			break;
 
-		case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:;
-			const struct retro_system_av_info *system_av_info = data;
-
-			frames_per_second = system_av_info->timing.fps;
-
-			DeinitVideo();
-			InitVideo(&system_av_info->geometry);
-
-			DeinitAudio();
-			InitAudio(system_av_info->timing.sample_rate);
-
+		case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
+			Callback_SetSystemAVInfo(data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_GEOMETRY:
-			// Nothing to do here yet
+			Callback_SetGeometry();
 			break;
 
 		default:
@@ -313,10 +356,61 @@ static void Callback_InputPoll(void)
 
 static int16_t Callback_InputState(unsigned int port, unsigned int device, unsigned int index, unsigned int id)
 {
-	(void)port;
-	(void)device;
 	(void)index;
-	(void)id;
+
+	if (port == 0 && device == RETRO_DEVICE_JOYPAD)
+	{
+		switch (id)
+		{
+			case RETRO_DEVICE_ID_JOYPAD_B:
+				return retropad.b;
+
+			case RETRO_DEVICE_ID_JOYPAD_Y:
+				return retropad.y;
+
+			case RETRO_DEVICE_ID_JOYPAD_SELECT:
+				return retropad.select;
+
+			case RETRO_DEVICE_ID_JOYPAD_START:
+				return retropad.start;
+
+			case RETRO_DEVICE_ID_JOYPAD_UP:
+				return retropad.up;
+
+			case RETRO_DEVICE_ID_JOYPAD_DOWN:
+				return retropad.down;
+
+			case RETRO_DEVICE_ID_JOYPAD_LEFT:
+				return retropad.left;
+
+			case RETRO_DEVICE_ID_JOYPAD_RIGHT:
+				return retropad.right;
+
+			case RETRO_DEVICE_ID_JOYPAD_A:
+				return retropad.a;
+
+			case RETRO_DEVICE_ID_JOYPAD_X:
+				return retropad.x;
+
+			case RETRO_DEVICE_ID_JOYPAD_L:
+				return retropad.l;
+
+			case RETRO_DEVICE_ID_JOYPAD_R:
+				return retropad.r;
+
+			case RETRO_DEVICE_ID_JOYPAD_L2:
+				return retropad.l2;
+
+			case RETRO_DEVICE_ID_JOYPAD_R2:
+				return retropad.r2;
+
+			case RETRO_DEVICE_ID_JOYPAD_L3:
+				return retropad.l3;
+
+			case RETRO_DEVICE_ID_JOYPAD_R3:
+				return retropad.r3;
+		}
+	}
 
 	return 0;
 }
@@ -408,6 +502,72 @@ int main(int argc, char **argv)
 										{
 											case SDL_QUIT:
 												quit = true;
+												break;
+
+											case SDL_KEYDOWN:
+											case SDL_KEYUP:
+												switch (event.key.keysym.scancode)
+												{
+													case SDL_SCANCODE_W:
+														retropad.up = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_A:
+														retropad.left = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_S:
+														retropad.down = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_D:
+														retropad.right = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_P:
+														retropad.a = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_O:
+														retropad.b = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_0:
+														retropad.x = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_9:
+														retropad.y = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_8:
+														retropad.l = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_7:
+														retropad.l2 = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_MINUS:
+														retropad.r = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_EQUALS:
+														retropad.r2 = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_RETURN:
+														retropad.start = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_BACKSPACE:
+														retropad.select = event.key.state == SDL_PRESSED;
+														break;
+
+													default:
+														break;
+												}
+
 												break;
 										}
 									}
