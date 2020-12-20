@@ -338,6 +338,8 @@ int main(int argc, char **argv)
 		{
 			if (core.retro_api_version() == 1)
 			{
+				pixel_format = RETRO_PIXEL_FORMAT_0RGB1555;
+
 				core.retro_set_environment(Callback_Environment);
 				core.retro_set_video_refresh(Callback_VideoRefresh);
 				core.retro_set_audio_sample(Callback_AudioSample);
@@ -370,8 +372,6 @@ int main(int argc, char **argv)
 					fread((void*)game_info.data, 1, game_info.size, file);
 					fclose(file);
 				}
-
-				pixel_format = RETRO_PIXEL_FORMAT_0RGB1555;
 
 				if (core.retro_load_game(&game_info))
 				{
