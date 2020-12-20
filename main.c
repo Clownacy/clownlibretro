@@ -174,7 +174,7 @@ static bool InitVideo(const struct retro_game_geometry *geometry)
 				break;
 		}
 
-		window = SDL_CreateWindow("Dummy title name", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, geometry->max_width, geometry->max_height, SDL_WINDOW_RESIZABLE);
+		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, geometry->max_width, geometry->max_height, SDL_WINDOW_RESIZABLE);
 
 		if (window != NULL)
 		{
