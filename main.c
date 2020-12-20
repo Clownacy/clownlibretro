@@ -13,6 +13,7 @@ static SDL_Window *window;
 static SDL_Surface *surface;
 static SDL_AudioDeviceID audio_device;
 static unsigned long sample_rate;
+static unsigned int frames_per_second;
 
 static enum retro_pixel_format pixel_format;
 
@@ -118,6 +119,100 @@ static void UnloadCore(Core *core)
 }
 
   ///////////////
+ // SDL stuff //
+///////////////
+
+static bool InitVideo(const struct retro_game_geometry *geometry)
+{
+	window = SDL_CreateWindow("Dummy title name", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, geometry->max_width, geometry->max_height, 0);
+
+	if (window != NULL)
+	{
+		if (pixel_format == RETRO_PIXEL_FORMAT_0RGB1555 || pixel_format == RETRO_PIXEL_FORMAT_XRGB8888 || pixel_format == RETRO_PIXEL_FORMAT_RGB565)
+		{
+			SDL_PixelFormatEnum surface_format;
+
+			switch (pixel_format)
+			{
+				default:
+				case RETRO_PIXEL_FORMAT_0RGB1555:
+					surface_format = SDL_PIXELFORMAT_ARGB1555;
+					break;
+
+				case RETRO_PIXEL_FORMAT_XRGB8888:
+					surface_format = SDL_PIXELFORMAT_ARGB32;
+					break;
+
+				case RETRO_PIXEL_FORMAT_RGB565:
+					surface_format = SDL_PIXELFORMAT_RGB565;
+					break;
+			}
+
+			surface = SDL_CreateRGBSurfaceWithFormat(0, geometry->max_width, geometry->max_height, 0, surface_format);
+
+			if (surface != NULL)
+			{
+				SDL_GetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
+
+				return true;
+			}
+			else
+			{
+				fprintf(stderr, "SDL_CreateRGBSurfaceWithFormat failed - Error: '%s'\n", SDL_GetError());
+			}
+		}
+		else
+		{
+			fputs("Core requested an invalid surface pixel format\n", stderr);
+		}
+
+		SDL_DestroyWindow(window);
+	}
+	else
+	{
+		fprintf(stderr, "SDL_CreateWindow failed - Error: '%s'\n", SDL_GetError());
+	}
+
+	return false;
+}
+
+static void DeinitVideo(void)
+{
+	SDL_FreeSurface(surface);
+	SDL_DestroyWindow(window);
+}
+
+static bool InitAudio(unsigned long _sample_rate)
+{
+	SDL_AudioSpec spec;
+	spec.freq = sample_rate = _sample_rate;
+	spec.channels = 2;
+	spec.samples = 1024;
+	spec.callback = NULL;
+	spec.userdata = NULL;
+
+	audio_device = SDL_OpenAudioDevice(NULL, 0, &spec, NULL, 0);
+
+	if (audio_device > 0)
+	{
+		SDL_PauseAudioDevice(audio_device, 0);
+
+		return true;
+	}
+	else
+	{
+		fprintf(stderr, "SDL_PauseAudioDevice failed - Error: '%s'\n", SDL_GetError());
+
+		return false;
+	}
+}
+
+static void DeinitAudio(void)
+{
+	SDL_CloseAudioDevice(audio_device);
+}
+
+  ///////////////
  // Callbacks //
 ///////////////
 
@@ -146,6 +241,23 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 					return false;
 			}
 
+			break;
+
+		case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:;
+			const struct retro_system_av_info *system_av_info = data;
+
+			frames_per_second = system_av_info->timing.fps;
+
+			DeinitVideo();
+			InitVideo(&system_av_info->geometry);
+
+			DeinitAudio();
+			InitAudio(system_av_info->timing.sample_rate);
+
+			break;
+
+		case RETRO_ENVIRONMENT_SET_GEOMETRY:
+			// Nothing to do here yet
 			break;
 
 		default:
@@ -266,103 +378,54 @@ int main(int argc, char **argv)
 					struct retro_system_av_info system_av_info;
 					core.retro_get_system_av_info(&system_av_info);
 
+					frames_per_second = system_av_info.timing.fps;
+
 					if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) == 0)
 					{
-						window = SDL_CreateWindow("Dummy title name", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, system_av_info.geometry.max_width, system_av_info.geometry.max_height, 0);
-
-						if (window != NULL)
+						if (InitVideo(&system_av_info.geometry))
 						{
-							if (pixel_format == RETRO_PIXEL_FORMAT_0RGB1555 || pixel_format == RETRO_PIXEL_FORMAT_XRGB8888 || pixel_format == RETRO_PIXEL_FORMAT_RGB565)
+							if (InitAudio(system_av_info.timing.sample_rate))
 							{
-								SDL_PixelFormatEnum surface_format;
+								main_return = EXIT_SUCCESS;
 
-								switch (pixel_format)
+								quit = false;
+
+								while (!quit)
 								{
-									default:
-									case RETRO_PIXEL_FORMAT_0RGB1555:
-										surface_format = SDL_PIXELFORMAT_ARGB1555;
-										break;
-
-									case RETRO_PIXEL_FORMAT_XRGB8888:
-										surface_format = SDL_PIXELFORMAT_ARGB32;
-										break;
-
-									case RETRO_PIXEL_FORMAT_RGB565:
-										surface_format = SDL_PIXELFORMAT_RGB565;
-										break;
-								}
-
-								surface = SDL_CreateRGBSurfaceWithFormat(0, system_av_info.geometry.max_width, system_av_info.geometry.max_height, 0, surface_format);
-
-								if (surface != NULL)
-								{
-									SDL_GetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
-
-									SDL_AudioSpec spec;
-									spec.freq = sample_rate = system_av_info.timing.sample_rate;
-									spec.channels = 2;
-									spec.samples = 1024;
-									spec.callback = NULL;
-									spec.userdata = NULL;
-
-									audio_device = SDL_OpenAudioDevice(NULL, 0, &spec, NULL, 0);
-
-									if (audio_device > 0)
+									SDL_Event event;
+									while (SDL_PollEvent(&event))
 									{
-										SDL_PauseAudioDevice(audio_device, 0);
-
-										main_return = EXIT_SUCCESS;
-
-										quit = false;
-
-										while (!quit)
+										switch (event.type)
 										{
-											SDL_Event event;
-											while (SDL_PollEvent(&event))
-											{
-												switch (event.type)
-												{
-													case SDL_QUIT:
-														quit = true;
-														break;
-												}
-											}
-
-											core.retro_run();
-
-											static Uint32 ticks_next;
-											const Uint32 ticks_now = SDL_GetTicks();
-
-											if (!SDL_TICKS_PASSED(ticks_now, ticks_next))
-												SDL_Delay(ticks_next - ticks_now);
-											
-											ticks_next += 1000 / system_av_info.timing.fps;
+											case SDL_QUIT:
+												quit = true;
+												break;
 										}
-
-										SDL_CloseAudioDevice(audio_device);
-									}
-									else
-									{
-										fprintf(stderr, "SDL_OpenAudioDevice failed - Error: '%s'\n", SDL_GetError());
 									}
 
-									SDL_FreeSurface(surface);
+									core.retro_run();
+
+									static Uint32 ticks_next;
+									const Uint32 ticks_now = SDL_GetTicks();
+
+									if (!SDL_TICKS_PASSED(ticks_now, ticks_next))
+										SDL_Delay(ticks_next - ticks_now);
+
+									ticks_next += 1000 / frames_per_second;
 								}
-								else
-								{
-									fprintf(stderr, "SDL_CreateRGBSurfaceWithFormat failed - Error: '%s'\n", SDL_GetError());
-								}
+
+								DeinitAudio();
 							}
 							else
 							{
-								fputs("Core requested an invalid surface pixel format\n", stderr);
+								fputs("InitAudio failed\n", stderr);
 							}
 
-							SDL_DestroyWindow(window);
+							DeinitVideo();
 						}
 						else
 						{
-							fprintf(stderr, "SDL_CreateWindow failed - Error: '%s'\n", SDL_GetError());
+							fputs("InitVideo failed\n", stderr);
 						}
 
 						SDL_Quit();
