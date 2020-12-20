@@ -140,7 +140,7 @@ static bool InitVideo(const struct retro_game_geometry *geometry)
 					break;
 
 				case RETRO_PIXEL_FORMAT_XRGB8888:
-					surface_format = SDL_PIXELFORMAT_ARGB32;
+					surface_format = SDL_PIXELFORMAT_ARGB8888;
 					break;
 
 				case RETRO_PIXEL_FORMAT_RGB565:
