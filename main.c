@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include <dlfcn.h>
+#include <libgen.h>
 
 #include "libretro.h"
 #include "SDL.h"
@@ -16,6 +17,8 @@ static size_t size_of_texture_pixel;
 static SDL_AudioDeviceID audio_device;
 static unsigned long sample_rate;
 static double frames_per_second;
+
+static char libretro_path[PATH_MAX];
 
 static enum retro_pixel_format pixel_format;
 
@@ -275,6 +278,11 @@ static bool Callback_SetPixelFormat(const enum retro_pixel_format *_pixel_format
 	}
 }
 
+static void Callback_GetLibretroPath(const char **path)
+{
+	*path = libretro_path;
+}
+
 static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
 {
 	frames_per_second = system_av_info->timing.fps;
@@ -307,6 +315,10 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 			if (!Callback_SetPixelFormat(data))
 				return false;
 
+			break;
+
+		case RETRO_ENVIRONMENT_GET_LIBRETRO_PATH:
+			Callback_GetLibretroPath(data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
@@ -441,6 +453,9 @@ int main(int argc, char **argv)
 
 	const char *core_path = argv[1];
 	const char *game_path = argv[2];
+
+	if (realpath(game_path, libretro_path) == NULL)
+		fputs("realpath failed\n", stderr);
 
 	if (argc > 2)
 	{

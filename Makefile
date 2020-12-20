@@ -1,4 +1,4 @@
-CFLAGS = -std=c99 -Wall -Wextra -pedantic $(shell pkg-config --cflags sdl2)
+CFLAGS = -std=gnu99 -Wall -Wextra -pedantic $(shell pkg-config --cflags sdl2)
 LIBS = -ldl $(shell pkg-config --libs sdl2)
 
 ifeq ($(RELEASE), 1)
