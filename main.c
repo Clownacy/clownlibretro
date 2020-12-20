@@ -366,12 +366,20 @@ int main(int argc, char **argv)
 				else
 				{
 					FILE *file = fopen(game_path, "rb");
-					fseek(file, 0, SEEK_END);
-					game_info.size = ftell(file);
-					game_info.data = malloc(game_info.size);
-					rewind(file);
-					fread((void*)game_info.data, 1, game_info.size, file);
-					fclose(file);
+
+					if (file != NULL)
+					{
+						fseek(file, 0, SEEK_END);
+						game_info.size = ftell(file);
+						game_info.data = malloc(game_info.size);
+						rewind(file);
+						fread((void*)game_info.data, 1, game_info.size, file);
+						fclose(file);
+					}
+					else
+					{
+						fprintf(stderr, "Could not open file '%s'\n", game_path);
+					}
 				}
 
 				if (core.retro_load_game(&game_info))
@@ -412,7 +420,7 @@ int main(int argc, char **argv)
 									if (ticks_now < ticks_next)
 										SDL_Delay(ticks_next - ticks_now);
 
-									ticks_next += 1000 / frames_per_second;
+									ticks_next += 1000.0 / frames_per_second;
 								}
 
 								DeinitAudio();
