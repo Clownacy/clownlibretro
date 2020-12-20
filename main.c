@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -288,6 +289,43 @@ static void Callback_GetInputDeviceCapabilities(uint64_t *capabilities)
 	*capabilities = (1 << RETRO_DEVICE_NONE) | (1 << RETRO_DEVICE_JOYPAD);
 }
 
+static void Callback_Log(enum retro_log_level level, const char *fmt, ...)
+{
+	switch (level)
+	{
+		case RETRO_LOG_DEBUG:
+			fprintf(stderr, "Debug: ");
+			break;
+
+		case RETRO_LOG_INFO:
+			fprintf(stderr, "Info: ");
+			break;
+
+		case RETRO_LOG_WARN:
+			fprintf(stderr, "Warning: ");
+			break;
+
+		case RETRO_LOG_ERROR:
+			fprintf(stderr, "Error: ");
+			break;
+
+		default:
+			break;
+	}
+
+	va_list args;
+	va_start(args, fmt);
+
+	vfprintf(stderr, fmt, args);
+
+	va_end(args);
+}
+
+static void Callback_GetLogInterface(struct retro_log_callback *log_callback)
+{
+	log_callback->log = Callback_Log;
+}
+
 static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
 {
 	frames_per_second = system_av_info->timing.fps;
@@ -330,6 +368,10 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 
 		case RETRO_ENVIRONMENT_GET_INPUT_DEVICE_CAPABILITIES:
 			Callback_GetInputDeviceCapabilities(data);
+			break;
+
+		case RETRO_ENVIRONMENT_GET_LOG_INTERFACE:
+			Callback_GetLogInterface(data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
