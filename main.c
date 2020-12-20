@@ -16,6 +16,8 @@ static unsigned long sample_rate;
 
 static enum retro_pixel_format pixel_format;
 
+static bool quit;
+
   ////////////////
  // Core stuff //
 ////////////////
@@ -123,6 +125,14 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 {
 	switch (cmd)
 	{
+		case RETRO_ENVIRONMENT_GET_CAN_DUPE:
+			*(bool*)data = true;
+			break;
+
+		case RETRO_ENVIRONMENT_SHUTDOWN:
+			quit = true;
+			break;
+
 		case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
 			switch (*(enum retro_pixel_format*)data)
 			{
@@ -147,19 +157,22 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 
 static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned int height, size_t pitch)
 {
-	const unsigned char *source_pixels = data;
-	unsigned char *destination_pixels = surface->pixels;
-
-	if (SDL_LockSurface(surface) == 0)
+	if (data != NULL)
 	{
-		for (unsigned int y = 0; y < height; ++y)
-			memcpy(&destination_pixels[surface->pitch * y], &source_pixels[pitch * y], width * (SDL_BITSPERPIXEL(surface->format->format) / 8));
+		const unsigned char *source_pixels = data;
+		unsigned char *destination_pixels = surface->pixels;
 
-		SDL_UnlockSurface(surface);
+		if (SDL_LockSurface(surface) == 0)
+		{
+			for (unsigned int y = 0; y < height; ++y)
+				memcpy(&destination_pixels[surface->pitch * y], &source_pixels[pitch * y], width * (SDL_BITSPERPIXEL(surface->format->format) / 8));
 
-		SDL_BlitSurface(surface, NULL, SDL_GetWindowSurface(window), NULL);
+			SDL_UnlockSurface(surface);
 
-		SDL_UpdateWindowSurface(window);
+			SDL_BlitSurface(surface, NULL, SDL_GetWindowSurface(window), NULL);
+
+			SDL_UpdateWindowSurface(window);
+		}
 	}
 }
 
@@ -300,7 +313,7 @@ int main(int argc, char **argv)
 
 										main_return = EXIT_SUCCESS;
 
-										bool quit = false;
+										quit = false;
 
 										while (!quit)
 										{
