@@ -283,6 +283,11 @@ static void Callback_GetLibretroPath(const char **path)
 	*path = libretro_path;
 }
 
+static void Callback_GetInputDeviceCapabilities(uint64_t *capabilities)
+{
+	*capabilities = (1 << RETRO_DEVICE_NONE) | (1 << RETRO_DEVICE_JOYPAD);
+}
+
 static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
 {
 	frames_per_second = system_av_info->timing.fps;
@@ -294,8 +299,10 @@ static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_a
 	InitAudio(system_av_info->timing.sample_rate);
 }
 
-static void Callback_SetGeometry(void)
+static void Callback_SetGeometry(const struct retro_game_geometry *geometry)
 {
+	(void)geometry;
+
 	// Nothing to do here yet
 }
 
@@ -321,12 +328,16 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 			Callback_GetLibretroPath(data);
 			break;
 
+		case RETRO_ENVIRONMENT_GET_INPUT_DEVICE_CAPABILITIES:
+			Callback_GetInputDeviceCapabilities(data);
+			break;
+
 		case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
 			Callback_SetSystemAVInfo(data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_GEOMETRY:
-			Callback_SetGeometry();
+			Callback_SetGeometry(data);
 			break;
 
 		default:
