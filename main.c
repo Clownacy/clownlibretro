@@ -152,7 +152,7 @@ static bool InitVideo(const struct retro_game_geometry *geometry)
 
 			if (surface != NULL)
 			{
-				SDL_GetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
+				SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
 
 				return true;
 			}
