@@ -341,8 +341,10 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 
 			SDL_UnlockTexture(texture);
 
-			SDL_RenderCopy(renderer, texture, NULL, NULL);
+			SDL_RenderSetLogicalSize(renderer, width, height);
 
+			SDL_RenderClear(renderer);
+			SDL_RenderCopy(renderer, texture, &rect, NULL);
 			SDL_RenderPresent(renderer);
 		}
 	}
@@ -372,9 +374,7 @@ static void Callback_InputPoll(void)
 
 static int16_t Callback_InputState(unsigned int port, unsigned int device, unsigned int index, unsigned int id)
 {
-	(void)index;
-
-	if (port == 0 && device == RETRO_DEVICE_JOYPAD)
+	if (port == 0 && device == RETRO_DEVICE_JOYPAD && index == 0)
 	{
 		switch (id)
 		{
@@ -501,6 +501,8 @@ int main(int argc, char **argv)
 
 					if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) == 0)
 					{
+						SDL_ShowCursor(SDL_DISABLE);
+
 						if (InitVideo(&system_av_info.geometry))
 						{
 							if (InitAudio(system_av_info.timing.sample_rate))
@@ -514,6 +516,11 @@ int main(int argc, char **argv)
 									SDL_Event event;
 									while (SDL_PollEvent(&event))
 									{
+										static bool alt_held;
+
+										if (event.key.keysym.sym == SDLK_LALT)
+											alt_held = event.key.state == SDL_PRESSED;
+
 										switch (event.type)
 										{
 											case SDL_QUIT:
@@ -572,8 +579,19 @@ int main(int argc, char **argv)
 														retropad.r2 = event.key.state == SDL_PRESSED;
 														break;
 
-													case SDL_SCANCODE_RETURN:
-														retropad.start = event.key.state == SDL_PRESSED;
+													case SDL_SCANCODE_RETURN:;
+														static bool fullscreen = false;
+
+														if (event.key.state == SDL_PRESSED && alt_held)
+														{
+															SDL_SetWindowFullscreen(window, fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+															fullscreen = !fullscreen;
+														}
+														else
+														{
+															retropad.start = event.key.state == SDL_PRESSED;
+														}
+
 														break;
 
 													case SDL_SCANCODE_BACKSPACE:
