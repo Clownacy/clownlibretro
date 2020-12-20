@@ -20,6 +20,7 @@ static unsigned long sample_rate;
 static double frames_per_second;
 
 static char libretro_path[PATH_MAX];
+static char *pref_path;
 
 static enum retro_pixel_format pixel_format;
 
@@ -326,6 +327,16 @@ static void Callback_GetLogInterface(struct retro_log_callback *log_callback)
 	log_callback->log = Callback_Log;
 }
 
+static void Callback_GetCoreAssetsDirectory(const char **directory)
+{
+	*directory = pref_path;
+}
+
+static void Callback_GetSaveDirectory(const char **directory)
+{
+	*directory = pref_path;
+}
+
 static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
 {
 	frames_per_second = system_av_info->timing.fps;
@@ -372,6 +383,14 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 
 		case RETRO_ENVIRONMENT_GET_LOG_INTERFACE:
 			Callback_GetLogInterface(data);
+			break;
+
+		case RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY:
+			Callback_GetCoreAssetsDirectory(data);
+			break;
+
+		case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
+			Callback_GetSaveDirectory(data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
@@ -509,6 +528,8 @@ int main(int argc, char **argv)
 
 	if (realpath(game_path, libretro_path) == NULL)
 		fputs("realpath failed\n", stderr);
+
+	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
 	if (argc > 2)
 	{
@@ -733,6 +754,8 @@ int main(int argc, char **argv)
 	{
 		fputs("Core/game path not provided\n", stderr);
 	}
+
+	SDL_free(pref_path);
 
 	return main_return;
 }
