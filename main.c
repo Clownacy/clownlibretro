@@ -13,7 +13,7 @@ static SDL_Window *window;
 static SDL_Surface *surface;
 static SDL_AudioDeviceID audio_device;
 static unsigned long sample_rate;
-static unsigned int frames_per_second;
+static double frames_per_second;
 
 static enum retro_pixel_format pixel_format;
 
@@ -186,6 +186,7 @@ static bool InitAudio(unsigned long _sample_rate)
 {
 	SDL_AudioSpec spec;
 	spec.freq = sample_rate = _sample_rate;
+	spec.format = AUDIO_S16SYS;
 	spec.channels = 2;
 	spec.samples = 1024;
 	spec.callback = NULL;
@@ -201,7 +202,7 @@ static bool InitAudio(unsigned long _sample_rate)
 	}
 	else
 	{
-		fprintf(stderr, "SDL_PauseAudioDevice failed - Error: '%s'\n", SDL_GetError());
+		fprintf(stderr, "SDL_OpenAudioDevice failed - Error: '%s'\n", SDL_GetError());
 
 		return false;
 	}
@@ -405,10 +406,10 @@ int main(int argc, char **argv)
 
 									core.retro_run();
 
-									static Uint32 ticks_next;
+									static double ticks_next;
 									const Uint32 ticks_now = SDL_GetTicks();
 
-									if (!SDL_TICKS_PASSED(ticks_now, ticks_next))
+									if (ticks_now < ticks_next)
 										SDL_Delay(ticks_next - ticks_now);
 
 									ticks_next += 1000 / frames_per_second;
