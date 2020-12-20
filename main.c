@@ -10,7 +10,9 @@
 #include "SDL.h"
 
 static SDL_Window *window;
-static SDL_Surface *surface;
+static SDL_Renderer *renderer;
+static SDL_Texture *texture;
+static size_t size_of_texture_pixel;
 static SDL_AudioDeviceID audio_device;
 static unsigned long sample_rate;
 static double frames_per_second;
@@ -144,53 +146,63 @@ static void UnloadCore(Core *core)
 
 static bool InitVideo(const struct retro_game_geometry *geometry)
 {
-	window = SDL_CreateWindow("Dummy title name", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, geometry->max_width, geometry->max_height, 0);
-
-	if (window != NULL)
+	if (pixel_format == RETRO_PIXEL_FORMAT_0RGB1555 || pixel_format == RETRO_PIXEL_FORMAT_XRGB8888 || pixel_format == RETRO_PIXEL_FORMAT_RGB565)
 	{
-		if (pixel_format == RETRO_PIXEL_FORMAT_0RGB1555 || pixel_format == RETRO_PIXEL_FORMAT_XRGB8888 || pixel_format == RETRO_PIXEL_FORMAT_RGB565)
+		SDL_PixelFormatEnum surface_format;
+
+		switch (pixel_format)
 		{
-			SDL_PixelFormatEnum surface_format;
+			default:
+			case RETRO_PIXEL_FORMAT_0RGB1555:
+				surface_format = SDL_PIXELFORMAT_ARGB1555;
+				size_of_texture_pixel = 2;
+				break;
 
-			switch (pixel_format)
+			case RETRO_PIXEL_FORMAT_XRGB8888:
+				surface_format = SDL_PIXELFORMAT_ARGB8888;
+				size_of_texture_pixel = 4;
+				break;
+
+			case RETRO_PIXEL_FORMAT_RGB565:
+				surface_format = SDL_PIXELFORMAT_RGB565;
+				size_of_texture_pixel = 2;
+				break;
+		}
+
+		window = SDL_CreateWindow("Dummy title name", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, geometry->max_width, geometry->max_height, SDL_WINDOW_RESIZABLE);
+
+		if (window != NULL)
+		{
+			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+			if (renderer != NULL)
 			{
-				default:
-				case RETRO_PIXEL_FORMAT_0RGB1555:
-					surface_format = SDL_PIXELFORMAT_ARGB1555;
-					break;
+				texture = SDL_CreateTexture(renderer, surface_format, SDL_TEXTUREACCESS_STREAMING, geometry->max_width, geometry->max_height);
 
-				case RETRO_PIXEL_FORMAT_XRGB8888:
-					surface_format = SDL_PIXELFORMAT_ARGB8888;
-					break;
+				if (texture != NULL)
+				{
+					SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
 
-				case RETRO_PIXEL_FORMAT_RGB565:
-					surface_format = SDL_PIXELFORMAT_RGB565;
-					break;
-			}
+					return true;
+				}
+				else
+				{
+					fprintf(stderr, "SDL_CreateTexture failed - Error: '%s'\n", SDL_GetError());
+				}
 
-			surface = SDL_CreateRGBSurfaceWithFormat(0, geometry->max_width, geometry->max_height, 0, surface_format);
-
-			if (surface != NULL)
-			{
-				SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
-
-				return true;
+				SDL_DestroyRenderer(renderer);
 			}
 			else
 			{
-				fprintf(stderr, "SDL_CreateRGBSurfaceWithFormat failed - Error: '%s'\n", SDL_GetError());
+				fprintf(stderr, "SDL_CreateRenderer failed - Error: '%s'\n", SDL_GetError());
 			}
+
+			SDL_DestroyWindow(window);
 		}
 		else
 		{
-			fputs("Core requested an invalid surface pixel format\n", stderr);
+			fprintf(stderr, "SDL_CreateWindow failed - Error: '%s'\n", SDL_GetError());
 		}
-
-		SDL_DestroyWindow(window);
-	}
-	else
-	{
-		fprintf(stderr, "SDL_CreateWindow failed - Error: '%s'\n", SDL_GetError());
 	}
 
 	return false;
@@ -198,7 +210,8 @@ static bool InitVideo(const struct retro_game_geometry *geometry)
 
 static void DeinitVideo(void)
 {
-	SDL_FreeSurface(surface);
+	SDL_DestroyTexture(texture);
+	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 }
 
@@ -316,18 +329,21 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 	if (data != NULL)
 	{
 		const unsigned char *source_pixels = data;
-		unsigned char *destination_pixels = surface->pixels;
+		unsigned char *destination_pixels;
 
-		if (SDL_LockSurface(surface) == 0)
+		SDL_Rect rect = {0, 0, width, height};
+		int destination_pitch;
+
+		if (SDL_LockTexture(texture, &rect, (void**)&destination_pixels, &destination_pitch) == 0)
 		{
 			for (unsigned int y = 0; y < height; ++y)
-				memcpy(&destination_pixels[surface->pitch * y], &source_pixels[pitch * y], width * (SDL_BITSPERPIXEL(surface->format->format) / 8));
+				memcpy(&destination_pixels[destination_pitch * y], &source_pixels[pitch * y], width * size_of_texture_pixel);
 
-			SDL_UnlockSurface(surface);
+			SDL_UnlockTexture(texture);
 
-			SDL_BlitSurface(surface, NULL, SDL_GetWindowSurface(window), NULL);
+			SDL_RenderCopy(renderer, texture, NULL, NULL);
 
-			SDL_UpdateWindowSurface(window);
+			SDL_RenderPresent(renderer);
 		}
 	}
 }
@@ -351,7 +367,7 @@ static void Callback_AudioSample(int16_t left, int16_t right)
 
 static void Callback_InputPoll(void)
 {
-	
+	// This function doesn't really suit SDL2
 }
 
 static int16_t Callback_InputState(unsigned int port, unsigned int device, unsigned int index, unsigned int id)
