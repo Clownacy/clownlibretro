@@ -332,7 +332,7 @@ int main(int argc, char **argv)
 	const char *core_path = argv[1];
 	const char *game_path = argv[2];
 
-	if (argc > 1)
+	if (argc > 2)
 	{
 		Core core;
 		if (LoadCore(&core, core_path))
@@ -461,7 +461,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		fputs("Core path not provided\n", stderr);
+		fputs("Core/game path not provided\n", stderr);
 	}
 
 	return main_return;
