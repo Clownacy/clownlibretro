@@ -540,6 +540,15 @@ int main(int argc, char **argv)
 
 	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
+	char *game_path_dup = strdup(game_path);
+	const char *game_filename = basename(game_path_dup);
+
+	char *save_file_path = malloc(strlen(pref_path) + 1 + strlen(game_filename) + 4 + 1);
+
+	sprintf(save_file_path, "%s%s.sav", pref_path, game_filename);
+
+	puts(save_file_path);
+
 	if (argc > 2)
 	{
 		Core core;
@@ -606,6 +615,20 @@ int main(int argc, char **argv)
 							if (InitAudio(system_av_info.timing.sample_rate))
 							{
 								main_return = EXIT_SUCCESS;
+
+								// Read save data from file
+								size_t save_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+
+								if (save_size != 0)
+								{
+									FILE *file = fopen(save_file_path, "rb");
+
+									if (file != NULL)
+									{
+										fread(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), 1, save_size, file);
+										fclose(file);
+									}
+								}
 
 								quit = false;
 
@@ -715,6 +738,20 @@ int main(int argc, char **argv)
 									ticks_next += 1000.0 / frames_per_second;
 								}
 
+								// Write save data to file
+								//size_t save_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+
+								if (save_size != 0)
+								{
+									FILE *file = fopen(save_file_path, "wb");
+
+									if (file != NULL)
+									{
+										fwrite(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), 1, save_size, file);
+										fclose(file);
+									}
+								}
+
 								DeinitAudio();
 							}
 							else
@@ -763,6 +800,9 @@ int main(int argc, char **argv)
 	{
 		fputs("Core/game path not provided\n", stderr);
 	}
+
+	free(save_file_path);
+	free(game_path_dup);
 
 	SDL_free(pref_path);
 
