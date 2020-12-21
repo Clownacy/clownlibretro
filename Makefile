@@ -7,5 +7,5 @@ else
   CFLAGS += -Og -ggdb3 -fsanitize=address
 endif
 
-libretro: main.c
+libretro: main.c audio.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)

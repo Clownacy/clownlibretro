@@ -11,14 +11,13 @@
 
 #include "SDL.h"
 
+#include "audio.h"
 #include "libretro.h"
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 static SDL_Texture *texture;
 static size_t size_of_texture_pixel;
-static SDL_AudioDeviceID audio_device;
-static unsigned long sample_rate;
 static double frames_per_second;
 
 static char libretro_path[PATH_MAX];
@@ -209,37 +208,6 @@ static void DeinitVideo(void)
 	SDL_DestroyWindow(window);
 }
 
-static bool InitAudio(unsigned long _sample_rate)
-{
-	SDL_AudioSpec spec;
-	spec.freq = sample_rate = _sample_rate;
-	spec.format = AUDIO_S16SYS;
-	spec.channels = 2;
-	spec.samples = 1024;
-	spec.callback = NULL;
-	spec.userdata = NULL;
-
-	audio_device = SDL_OpenAudioDevice(NULL, 0, &spec, NULL, 0);
-
-	if (audio_device > 0)
-	{
-		SDL_PauseAudioDevice(audio_device, 0);
-
-		return true;
-	}
-	else
-	{
-		fprintf(stderr, "SDL_OpenAudioDevice failed - Error: '%s'\n", SDL_GetError());
-
-		return false;
-	}
-}
-
-static void DeinitAudio(void)
-{
-	SDL_CloseAudioDevice(audio_device);
-}
-
   ///////////////
  // Callbacks //
 ///////////////
@@ -334,8 +302,8 @@ static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_a
 	DeinitVideo();
 	InitVideo(&system_av_info->geometry);
 
-	DeinitAudio();
-	InitAudio(system_av_info->timing.sample_rate);
+	Audio_Deinit();
+	Audio_Init(system_av_info->timing.sample_rate);
 }
 
 static void Callback_SetGeometry(const struct retro_game_geometry *geometry)
@@ -431,21 +399,14 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 
 static size_t Callback_AudioSampleBatch(const int16_t *data, size_t frames)
 {
-	const size_t size_of_frame = 2 * sizeof(int16_t);
-
-	// Don't allow the queued audio to exceed a tenth of a second.
-	// This prevents any timing issues from creating an ever-increasing audio delay.
-	if (SDL_GetQueuedAudioSize(audio_device) < sample_rate / 10 * size_of_frame)
-		SDL_QueueAudio(audio_device, data, frames * size_of_frame);
-
-	return frames;
+	return Audio_PushFrames(data, frames);
 }
 
 static void Callback_AudioSample(int16_t left, int16_t right)
 {
 	const int16_t buffer[2] = {left, right};
 
-	Callback_AudioSampleBatch(buffer, 1);
+	Audio_PushFrames(buffer, 1);
 }
 
 static void Callback_InputPoll(void)
@@ -614,7 +575,7 @@ int main(int argc, char **argv)
 					{
 						if (InitVideo(&system_av_info.geometry))
 						{
-							if (InitAudio(system_av_info.timing.sample_rate))
+							if (Audio_Init(system_av_info.timing.sample_rate))
 							{
 								main_return = EXIT_SUCCESS;
 
@@ -766,7 +727,7 @@ int main(int argc, char **argv)
 								}
 
 								// Begin teardown
-								DeinitAudio();
+								Audio_Deinit();
 							}
 							else
 							{
