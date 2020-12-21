@@ -580,8 +580,6 @@ int main(int argc, char **argv)
 
 					if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) == 0)
 					{
-						SDL_ShowCursor(SDL_DISABLE);
-
 						if (InitVideo(&system_av_info.geometry))
 						{
 							if (InitAudio(system_av_info.timing.sample_rate))
@@ -686,8 +684,11 @@ int main(int argc, char **argv)
 														if (event.key.state == SDL_PRESSED && alt_held)
 														{
 															static bool fullscreen = false;
-															SDL_SetWindowFullscreen(window, fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 															fullscreen = !fullscreen;
+
+															SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+
+															SDL_ShowCursor(fullscreen ? SDL_DISABLE : SDL_ENABLE);
 														}
 														else
 														{
