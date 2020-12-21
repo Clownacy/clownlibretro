@@ -544,9 +544,11 @@ int main(int argc, char **argv)
 
 				core.retro_init();
 
+				// Grab some info for later
 				struct retro_system_info system_info;
 				core.retro_get_system_info(&system_info);
 
+				// Load the game (TODO: handle cores that don't need supplied game data)
 				struct retro_game_info game_info;
 				game_info.path = game_path;
 				game_info.data = NULL;
@@ -555,6 +557,8 @@ int main(int argc, char **argv)
 
 				if (!system_info.need_fullpath)
 				{
+					// If the file is a zip archive, then try extracing a useable file.
+					// If it isn't, just assume it's a plain ROM and load it to memory.
 					zip_t *zip = zip_open(game_path, ZIP_RDONLY, NULL);
 
 					if (zip != NULL)
@@ -597,11 +601,13 @@ int main(int argc, char **argv)
 
 				if (core.retro_load_game(&game_info))
 				{
+					// Grab more info that will come in handy later
 					struct retro_system_av_info system_av_info;
 					core.retro_get_system_av_info(&system_av_info);
 
 					frames_per_second = system_av_info.timing.fps;
 
+					// Initialise SDL2 video and audio
 					if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) == 0)
 					{
 						if (InitVideo(&system_av_info.geometry))
@@ -626,10 +632,12 @@ int main(int argc, char **argv)
 									fputs("Save file could not be read\n", stderr);
 								}
 
+								// Begin the mainloop
 								quit = false;
 
 								while (!quit)
 								{
+									// Handle events
 									SDL_Event event;
 									while (SDL_PollEvent(&event))
 									{
@@ -733,8 +741,10 @@ int main(int argc, char **argv)
 										}
 									}
 
+									// Update the core
 									core.retro_run();
 
+									// Delay until the next frame
 									static double ticks_next;
 									const Uint32 ticks_now = SDL_GetTicks();
 
@@ -753,6 +763,7 @@ int main(int argc, char **argv)
 										fputs("Save file could not be written\n", stderr);
 								}
 
+								// Begin teardown
 								DeinitAudio();
 							}
 							else
