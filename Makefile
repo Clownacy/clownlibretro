@@ -1,5 +1,5 @@
-CFLAGS = -std=gnu99 -Wall -Wextra -pedantic $(shell pkg-config --cflags sdl2)
-LIBS = -ldl $(shell pkg-config --libs sdl2)
+CFLAGS = -std=gnu99 -Wall -Wextra -pedantic $(shell pkg-config --cflags sdl2 libzip)
+LIBS = -ldl $(shell pkg-config --libs sdl2 libzip)
 
 ifeq ($(RELEASE), 1)
   CFLAGS += -O2 -s

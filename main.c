@@ -7,9 +7,11 @@
 
 #include <dlfcn.h>
 #include <libgen.h>
+#include <zip.h>
+
+#include "SDL.h"
 
 #include "libretro.h"
-#include "SDL.h"
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -552,8 +554,46 @@ int main(int argc, char **argv)
 				game_info.meta = NULL;
 
 				if (!system_info.need_fullpath)
-					if (!FileToMemory(game_path, (unsigned char**)&game_info.data, &game_info.size))
+				{
+					zip_t *zip = zip_open(game_path, ZIP_RDONLY, NULL);
+
+					if (zip != NULL)
+					{
+						const zip_int64_t total_files = zip_get_num_entries(zip, 0);
+						for (zip_int64_t i = 0; i < total_files; ++i)
+						{
+							zip_stat_t stat;
+							if (zip_stat_index(zip, i, 0, &stat) == 0 && stat.valid & ZIP_STAT_SIZE)
+							{
+								zip_file_t *zip_file = zip_fopen_index(zip, i, 0);
+
+								if (zip_file != NULL)
+								{
+									game_info.data = malloc(stat.size);
+
+									if (game_info.data != NULL)
+									{
+										game_info.size = stat.size;
+
+										zip_fread(zip_file, (void*)game_info.data, game_info.size);
+
+										zip_fclose(zip_file);
+
+										break;
+									}
+
+									zip_fclose(zip_file);
+								}
+							}
+						}
+
+						zip_close(zip);
+					}
+					else if (!FileToMemory(game_path, (unsigned char**)&game_info.data, &game_info.size))
+					{
 						fprintf(stderr, "Could not open file '%s'\n", game_path);
+					}
+				}
 
 				if (core.retro_load_game(&game_info))
 				{
