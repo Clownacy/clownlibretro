@@ -596,7 +596,7 @@ int main(int argc, char **argv)
 		Core core;
 		if (LoadCore(&core, core_path))
 		{
-			if (core.retro_api_version() == 1)
+			if (core.retro_api_version() == RETRO_API_VERSION)
 			{
 				pixel_format = RETRO_PIXEL_FORMAT_0RGB1555;
 
