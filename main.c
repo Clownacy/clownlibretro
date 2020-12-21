@@ -452,7 +452,9 @@ static void Callback_InputPoll(void)
 
 static int16_t Callback_InputState(unsigned int port, unsigned int device, unsigned int index, unsigned int id)
 {
-	if (port == 0 && device == RETRO_DEVICE_JOYPAD && index == 0)
+	(void)index;
+
+	if (port == 0 && device == RETRO_DEVICE_JOYPAD)
 		return retropad.buttons[id];
 
 	return 0;
