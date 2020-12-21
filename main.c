@@ -159,7 +159,23 @@ static bool InitVideo(const struct retro_game_geometry *geometry)
 				break;
 		}
 
-		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_RESIZABLE);
+		float aspect_ratio = geometry->aspect_ratio <= 0.0f ? (float)geometry->base_width / (float)geometry->base_height : geometry->aspect_ratio;
+
+		size_t window_width;
+		size_t window_height;
+
+		if (aspect_ratio >= 1.0f)
+		{
+			window_width = (size_t)(480 * aspect_ratio);
+			window_height = 480;
+		}
+		else
+		{
+			window_width = 640;
+			window_height = (size_t)(640 * aspect_ratio);
+		}
+
+		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE);
 
 		if (window != NULL)
 		{
