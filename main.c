@@ -314,6 +314,7 @@ static void Callback_Log(enum retro_log_level level, const char *fmt, ...)
 			break;
 
 		default:
+			fputs("Unknown log type: ", stderr);
 			break;
 	}
 
