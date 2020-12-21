@@ -613,20 +613,14 @@ int main(int argc, char **argv)
 				core.retro_get_system_info(&system_info);
 
 				struct retro_game_info game_info;
-				game_info.path = NULL;
+				game_info.path = game_path;
 				game_info.data = NULL;
 				game_info.size = 0;
 				game_info.meta = NULL;
 
-				if (system_info.need_fullpath)
-				{
-					game_info.path = game_path;
-				}
-				else
-				{
+				if (!system_info.need_fullpath)
 					if (!FileToMemory(game_path, (unsigned char**)&game_info.data, &game_info.size))
 						fprintf(stderr, "Could not open file '%s'\n", game_path);
-				}
 
 				if (core.retro_load_game(&game_info))
 				{
