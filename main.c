@@ -536,7 +536,7 @@ int main(int argc, char **argv)
 	char *game_path_dup = strdup(game_path);
 	const char *game_filename = basename(game_path_dup);
 
-	char *save_file_path = malloc(strlen(pref_path) + 1 + strlen(game_filename) + 4 + 1);
+	char *save_file_path = malloc(strlen(pref_path) + strlen(game_filename) + 4 + 1);
 
 	sprintf(save_file_path, "%s%s.sav", pref_path, game_filename);
 
