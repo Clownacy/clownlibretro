@@ -576,7 +576,7 @@ int main(int argc, char **argv)
 								// Read save data from file
 								unsigned char *save_file_buffer;
 								size_t save_file_size;
-								if (FileToMemory(game_path, &save_file_buffer, &save_file_size))
+								if (FileToMemory(save_file_path, &save_file_buffer, &save_file_size))
 								{
 									memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
 
