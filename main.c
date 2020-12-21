@@ -159,7 +159,7 @@ static bool InitVideo(const struct retro_game_geometry *geometry)
 				break;
 		}
 
-		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, geometry->max_width, geometry->max_height, SDL_WINDOW_RESIZABLE);
+		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_RESIZABLE);
 
 		if (window != NULL)
 		{
@@ -167,6 +167,8 @@ static bool InitVideo(const struct retro_game_geometry *geometry)
 
 			if (renderer != NULL)
 			{
+				SDL_RenderSetLogicalSize(renderer, geometry->base_width, geometry->base_height);
+
 				texture = SDL_CreateTexture(renderer, surface_format, SDL_TEXTUREACCESS_STREAMING, geometry->max_width, geometry->max_height);
 
 				if (texture != NULL)
@@ -335,9 +337,7 @@ static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_a
 
 static void Callback_SetGeometry(const struct retro_game_geometry *geometry)
 {
-	(void)geometry;
-
-	// Nothing to do here yet
+	SDL_RenderSetLogicalSize(renderer, geometry->base_width, geometry->base_height);
 }
 
 static void Callback_GetInputMaxUsers(unsigned int *max_users)
@@ -418,8 +418,6 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 				memcpy(&destination_pixels[destination_pitch * y], &source_pixels[pitch * y], width * size_of_texture_pixel);
 
 			SDL_UnlockTexture(texture);
-
-			SDL_RenderSetLogicalSize(renderer, width, height);
 
 			SDL_RenderClear(renderer);
 			SDL_RenderCopy(renderer, texture, &rect, NULL);
