@@ -28,22 +28,7 @@ static bool quit;
 
 static struct
 {
-	bool up;
-	bool down;
-	bool left;
-	bool right;
-	bool a;
-	bool b;
-	bool x;
-	bool y;
-	bool start;
-	bool select;
-	bool l;
-	bool l2;
-	bool l3;
-	bool r;
-	bool r2;
-	bool r3;
+	bool buttons[16];
 } retropad;
 
   ////////////////
@@ -468,58 +453,7 @@ static void Callback_InputPoll(void)
 static int16_t Callback_InputState(unsigned int port, unsigned int device, unsigned int index, unsigned int id)
 {
 	if (port == 0 && device == RETRO_DEVICE_JOYPAD && index == 0)
-	{
-		switch (id)
-		{
-			case RETRO_DEVICE_ID_JOYPAD_B:
-				return retropad.b;
-
-			case RETRO_DEVICE_ID_JOYPAD_Y:
-				return retropad.y;
-
-			case RETRO_DEVICE_ID_JOYPAD_SELECT:
-				return retropad.select;
-
-			case RETRO_DEVICE_ID_JOYPAD_START:
-				return retropad.start;
-
-			case RETRO_DEVICE_ID_JOYPAD_UP:
-				return retropad.up;
-
-			case RETRO_DEVICE_ID_JOYPAD_DOWN:
-				return retropad.down;
-
-			case RETRO_DEVICE_ID_JOYPAD_LEFT:
-				return retropad.left;
-
-			case RETRO_DEVICE_ID_JOYPAD_RIGHT:
-				return retropad.right;
-
-			case RETRO_DEVICE_ID_JOYPAD_A:
-				return retropad.a;
-
-			case RETRO_DEVICE_ID_JOYPAD_X:
-				return retropad.x;
-
-			case RETRO_DEVICE_ID_JOYPAD_L:
-				return retropad.l;
-
-			case RETRO_DEVICE_ID_JOYPAD_R:
-				return retropad.r;
-
-			case RETRO_DEVICE_ID_JOYPAD_L2:
-				return retropad.l2;
-
-			case RETRO_DEVICE_ID_JOYPAD_R2:
-				return retropad.r2;
-
-			case RETRO_DEVICE_ID_JOYPAD_L3:
-				return retropad.l3;
-
-			case RETRO_DEVICE_ID_JOYPAD_R3:
-				return retropad.r3;
-		}
-	}
+		return retropad.buttons[id];
 
 	return 0;
 }
@@ -678,51 +612,51 @@ int main(int argc, char **argv)
 												switch (event.key.keysym.scancode)
 												{
 													case SDL_SCANCODE_W:
-														retropad.up = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_A:
-														retropad.left = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_S:
-														retropad.down = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_D:
-														retropad.right = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_P:
-														retropad.a = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_O:
-														retropad.b = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_0:
-														retropad.x = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_9:
-														retropad.y = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_8:
-														retropad.l = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_7:
-														retropad.l2 = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_MINUS:
-														retropad.r = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_EQUALS:
-														retropad.r2 = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_RETURN:;
@@ -735,13 +669,13 @@ int main(int argc, char **argv)
 														}
 														else
 														{
-															retropad.start = event.key.state == SDL_PRESSED;
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START] = event.key.state == SDL_PRESSED;
 														}
 
 														break;
 
 													case SDL_SCANCODE_BACKSPACE:
-														retropad.select = event.key.state == SDL_PRESSED;
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT] = event.key.state == SDL_PRESSED;
 														break;
 
 													default:
