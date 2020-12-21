@@ -496,6 +496,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
+		// Calculate some paths which will be needed later
 		const char *core_path = argv[1];
 		const char *game_path = argv[2];
 
@@ -511,6 +512,7 @@ int main(int argc, char **argv)
 
 		sprintf(save_file_path, "%s%s.sav", pref_path, game_filename);
 
+		// Load the core, set some callbacks, and initialise it
 		Core core;
 		if (LoadCore(&core, core_path))
 		{
