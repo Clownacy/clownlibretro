@@ -523,8 +523,6 @@ int main(int argc, char **argv)
 
 	sprintf(save_file_path, "%s%s.sav", pref_path, game_filename);
 
-	puts(save_file_path);
-
 	if (argc > 2)
 	{
 		Core core;
