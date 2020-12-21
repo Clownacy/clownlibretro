@@ -649,12 +649,20 @@ int main(int argc, char **argv)
 														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2] = event.key.state == SDL_PRESSED;
 														break;
 
+													case SDL_SCANCODE_L:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3] = event.key.state == SDL_PRESSED;
+														break;
+
 													case SDL_SCANCODE_MINUS:
 														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_EQUALS:
 														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_SEMICOLON:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3] = event.key.state == SDL_PRESSED;
 														break;
 
 													case SDL_SCANCODE_RETURN:;
