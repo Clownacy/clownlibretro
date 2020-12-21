@@ -524,6 +524,48 @@ static int16_t Callback_InputState(unsigned int port, unsigned int device, unsig
 	return 0;
 }
 
+  ////////////////
+ // Other junk //
+////////////////
+
+static bool FileToMemory(const char *filename, unsigned char **buffer, size_t *size)
+{
+	FILE *file = fopen(filename, "rb");
+
+	if (file != NULL)
+	{
+		fseek(file, 0, SEEK_END);
+		*size = ftell(file);
+		*buffer = malloc(*size);
+		rewind(file);
+		fread(*buffer, 1, *size, file);
+		fclose(file);
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+static bool MemoryToFile(const char *filename, const unsigned char *buffer, size_t size)
+{
+	FILE *file = fopen(filename, "wb");
+
+	if (file != NULL)
+	{
+		fwrite(buffer, 1, size, file);
+		fclose(file);
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
   //////////
  // Main //
 //////////
@@ -582,21 +624,8 @@ int main(int argc, char **argv)
 				}
 				else
 				{
-					FILE *file = fopen(game_path, "rb");
-
-					if (file != NULL)
-					{
-						fseek(file, 0, SEEK_END);
-						game_info.size = ftell(file);
-						game_info.data = malloc(game_info.size);
-						rewind(file);
-						fread((void*)game_info.data, 1, game_info.size, file);
-						fclose(file);
-					}
-					else
-					{
+					if (!FileToMemory(game_path, (unsigned char**)&game_info.data, &game_info.size))
 						fprintf(stderr, "Could not open file '%s'\n", game_path);
-					}
 				}
 
 				if (core.retro_load_game(&game_info))
@@ -617,17 +646,19 @@ int main(int argc, char **argv)
 								main_return = EXIT_SUCCESS;
 
 								// Read save data from file
-								size_t save_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
-
-								if (save_size != 0)
+								unsigned char *save_file_buffer;
+								size_t save_file_size;
+								if (FileToMemory(game_path, &save_file_buffer, &save_file_size))
 								{
-									FILE *file = fopen(save_file_path, "rb");
+									memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
 
-									if (file != NULL)
-									{
-										fread(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), 1, save_size, file);
-										fclose(file);
-									}
+									free(save_file_buffer);
+
+									fputs("Save file read\n", stderr);
+								}
+								else
+								{
+									fputs("Save file could not be read\n", stderr);
 								}
 
 								quit = false;
@@ -739,18 +770,10 @@ int main(int argc, char **argv)
 								}
 
 								// Write save data to file
-								//size_t save_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
-
-								if (save_size != 0)
-								{
-									FILE *file = fopen(save_file_path, "wb");
-
-									if (file != NULL)
-									{
-										fwrite(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), 1, save_size, file);
-										fclose(file);
-									}
-								}
+								if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
+									fputs("Save file written\n", stderr);
+								else
+									fputs("Save file could not be written\n", stderr);
 
 								DeinitAudio();
 							}
