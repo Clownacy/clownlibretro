@@ -665,11 +665,10 @@ int main(int argc, char **argv)
 														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3] = event.key.state == SDL_PRESSED;
 														break;
 
-													case SDL_SCANCODE_RETURN:;
-														static bool fullscreen = false;
-
+													case SDL_SCANCODE_RETURN:
 														if (event.key.state == SDL_PRESSED && alt_held)
 														{
+															static bool fullscreen = false;
 															SDL_SetWindowFullscreen(window, fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 															fullscreen = !fullscreen;
 														}
