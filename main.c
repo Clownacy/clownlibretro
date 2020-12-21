@@ -744,11 +744,14 @@ int main(int argc, char **argv)
 									ticks_next += 1000.0 / frames_per_second;
 								}
 
-								// Write save data to file
-								if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
-									fputs("Save file written\n", stderr);
-								else
-									fputs("Save file could not be written\n", stderr);
+								if (core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) != 0)
+								{
+									// Write save data to file
+									if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
+										fputs("Save file written\n", stderr);
+									else
+										fputs("Save file could not be written\n", stderr);
+								}
 
 								DeinitAudio();
 							}
