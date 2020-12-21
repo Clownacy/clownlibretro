@@ -433,6 +433,8 @@ static size_t Callback_AudioSampleBatch(const int16_t *data, size_t frames)
 {
 	const size_t size_of_frame = 2 * sizeof(int16_t);
 
+	// Don't allow the queued audio to exceed a tenth of a second.
+	// This prevents any timing issues from creating an ever-increasing audio delay.
 	if (SDL_GetQueuedAudioSize(audio_device) < sample_rate / 10 * size_of_frame)
 		SDL_QueueAudio(audio_device, data, frames * size_of_frame);
 
