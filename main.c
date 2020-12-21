@@ -298,19 +298,19 @@ static void Callback_Log(enum retro_log_level level, const char *fmt, ...)
 	switch (level)
 	{
 		case RETRO_LOG_DEBUG:
-			fprintf(stderr, "Debug: ");
+			fputs("Debug: ", stderr);
 			break;
 
 		case RETRO_LOG_INFO:
-			fprintf(stderr, "Info: ");
+			fputs("Info: ", stderr);
 			break;
 
 		case RETRO_LOG_WARN:
-			fprintf(stderr, "Warning: ");
+			fputs("Warning: ", stderr);
 			break;
 
 		case RETRO_LOG_ERROR:
-			fprintf(stderr, "Error: ");
+			fputs("Error: ", stderr);
 			break;
 
 		default:
