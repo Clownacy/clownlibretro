@@ -486,23 +486,31 @@ int main(int argc, char **argv)
 {
 	int main_return = EXIT_FAILURE;
 
-	const char *core_path = argv[1];
-	const char *game_path = argv[2];
-
-	if (realpath(game_path, libretro_path) == NULL)
-		fputs("realpath failed\n", stderr);
-
-	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
-
-	char *game_path_dup = strdup(game_path);
-	const char *game_filename = basename(game_path_dup);
-
-	char *save_file_path = malloc(strlen(pref_path) + strlen(game_filename) + 4 + 1);
-
-	sprintf(save_file_path, "%s%s.sav", pref_path, game_filename);
-
-	if (argc > 2)
+	if (argc < 2)
 	{
+		fputs("Core path not specified\n", stderr);
+	}
+	else if (argc < 3)
+	{
+		fputs("Game path not specified\n", stderr);
+	}
+	else
+	{
+		const char *core_path = argv[1];
+		const char *game_path = argv[2];
+
+		if (realpath(game_path, libretro_path) == NULL)
+			fputs("realpath failed\n", stderr);
+
+		pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
+
+		char *game_path_dup = strdup(game_path);
+		const char *game_filename = basename(game_path_dup);
+
+		char *save_file_path = malloc(strlen(pref_path) + strlen(game_filename) + 4 + 1);
+
+		sprintf(save_file_path, "%s%s.sav", pref_path, game_filename);
+
 		Core core;
 		if (LoadCore(&core, core_path))
 		{
@@ -781,16 +789,12 @@ int main(int argc, char **argv)
 		{
 			fputs("Could not load core\n", stderr);
 		}
-	}
-	else
-	{
-		fputs("Core/game path not provided\n", stderr);
-	}
 
-	free(save_file_path);
-	free(game_path_dup);
+		free(save_file_path);
+		free(game_path_dup);
 
-	SDL_free(pref_path);
+		SDL_free(pref_path);
+	}
 
 	return main_return;
 }
