@@ -23,6 +23,9 @@ typedef enum Video_Format
 
 typedef struct Video_Texture Video_Texture;
 
+extern size_t window_width;
+extern size_t window_height;
+
 bool Video_Init(size_t window_width, size_t window_height);
 void Video_Deinit(void);
 void Video_Clear(void);

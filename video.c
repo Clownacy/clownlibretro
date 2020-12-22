@@ -12,6 +12,9 @@ struct Video_Texture
 	Video_Format format;
 };
 
+size_t window_width;
+size_t window_height;
+
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 
