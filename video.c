@@ -18,56 +18,55 @@ static size_t output_height;
 
 bool Video_Init(const struct retro_game_geometry *geometry, enum retro_pixel_format pixel_format)
 {
-	if (pixel_format == RETRO_PIXEL_FORMAT_0RGB1555 || pixel_format == RETRO_PIXEL_FORMAT_XRGB8888 || pixel_format == RETRO_PIXEL_FORMAT_RGB565)
+	SDL_PixelFormatEnum surface_format;
+
+	switch (pixel_format)
 	{
-		SDL_PixelFormatEnum surface_format;
+		case RETRO_PIXEL_FORMAT_0RGB1555:
+			surface_format = SDL_PIXELFORMAT_ARGB1555;
+			size_of_texture_pixel = 2;
+			break;
 
-		switch (pixel_format)
+		case RETRO_PIXEL_FORMAT_XRGB8888:
+			surface_format = SDL_PIXELFORMAT_ARGB8888;
+			size_of_texture_pixel = 4;
+			break;
+
+		case RETRO_PIXEL_FORMAT_RGB565:
+			surface_format = SDL_PIXELFORMAT_RGB565;
+			size_of_texture_pixel = 2;
+			break;
+
+		default:
+			return false;
+	}
+
+	window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, geometry->base_width, geometry->base_height, SDL_WINDOW_RESIZABLE);
+
+	if (window != NULL)
+	{
+		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+		if (renderer != NULL)
 		{
-			default:
-			case RETRO_PIXEL_FORMAT_0RGB1555:
-				surface_format = SDL_PIXELFORMAT_ARGB1555;
-				size_of_texture_pixel = 2;
-				break;
+			SDL_RenderSetLogicalSize(renderer, geometry->base_width, geometry->base_height);
 
-			case RETRO_PIXEL_FORMAT_XRGB8888:
-				surface_format = SDL_PIXELFORMAT_ARGB8888;
-				size_of_texture_pixel = 4;
-				break;
+			texture = SDL_CreateTexture(renderer, surface_format, SDL_TEXTUREACCESS_STREAMING, geometry->max_width, geometry->max_height);
 
-			case RETRO_PIXEL_FORMAT_RGB565:
-				surface_format = SDL_PIXELFORMAT_RGB565;
-				size_of_texture_pixel = 2;
-				break;
-		}
-
-		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, geometry->base_width, geometry->base_height, SDL_WINDOW_RESIZABLE);
-
-		if (window != NULL)
-		{
-			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
-			if (renderer != NULL)
+			if (texture != NULL)
 			{
-				SDL_RenderSetLogicalSize(renderer, geometry->base_width, geometry->base_height);
+				SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
 
-				texture = SDL_CreateTexture(renderer, surface_format, SDL_TEXTUREACCESS_STREAMING, geometry->max_width, geometry->max_height);
+				output_width = geometry->base_width;
+				output_height = geometry->base_height;
 
-				if (texture != NULL)
-				{
-					SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
-
-					output_width = geometry->base_width;
-					output_height = geometry->base_height;
-
-					return true;
-				}
-
-				SDL_DestroyRenderer(renderer);
+				return true;
 			}
 
-			SDL_DestroyWindow(window);
+			SDL_DestroyRenderer(renderer);
 		}
+
+		SDL_DestroyWindow(window);
 	}
 
 	return false;
