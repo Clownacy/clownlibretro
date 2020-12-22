@@ -593,7 +593,7 @@ int main(int argc, char **argv)
 					frames_per_second = system_av_info.timing.fps;
 
 					// Initialise SDL2 video and audio
-					if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) == 0)
+					if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) == 0)
 					{
 						if (InitVideo(&system_av_info.geometry))
 						{
