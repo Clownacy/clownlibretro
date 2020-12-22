@@ -1,5 +1,5 @@
-CFLAGS = -std=gnu99 -Wall -Wextra -pedantic $(shell pkg-config --cflags sdl2 libzip)
-LIBS = -ldl $(shell pkg-config --libs sdl2 libzip)
+CFLAGS = -std=gnu99 -Wall -Wextra -pedantic $(shell pkg-config --cflags sdl2 libzip freetype2) -DFREETYPE_FONTS
+LIBS = -ldl -lm $(shell pkg-config --libs sdl2 libzip freetype2)
 
 ifeq ($(RELEASE), 1)
   CFLAGS += -O2 -s
@@ -7,5 +7,5 @@ else
   CFLAGS += -Og -ggdb3 -fsanitize=address
 endif
 
-libretro: main.c audio.c video.c
+libretro: main.c audio.c file.c font.c video.c
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)

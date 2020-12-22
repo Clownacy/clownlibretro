@@ -120,3 +120,30 @@ void Video_SetFullscreen(bool fullscreen)
 
 	SDL_ShowCursor(fullscreen ? SDL_DISABLE : SDL_ENABLE);
 }
+
+Video_Texture* Video_TextureCreate(size_t width, size_t height)
+{
+	return (Video_Texture*)SDL_CreateTexture(renderer, SDL_TEXTUREACCESS_STATIC, SDL_PIXELFORMAT_RGBA32, width, height);
+}
+
+void Video_TextureDestroy(Video_Texture *texture)
+{
+	SDL_DestroyTexture((SDL_Texture*)texture);
+}
+
+void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitch, size_t x, size_t y, size_t width, size_t height)
+{
+	SDL_Rect rect = {x, y, width, height};
+
+	SDL_UpdateTexture((SDL_Texture*)texture, &rect, pixels, pitch);
+}
+
+void Video_TextureDraw(Video_Texture *texture, size_t dst_x, size_t dst_y, size_t src_x, size_t src_y, size_t width, size_t height, unsigned char red, unsigned char green, unsigned char blue)
+{
+	SDL_Rect src_rect = {src_x, src_y, width, height};
+	SDL_Rect dst_rect = {dst_x, dst_y, width, height};
+
+	SDL_SetTextureColorMod((SDL_Texture*)texture, red, green, blue);
+
+	SDL_RenderCopy(renderer, (SDL_Texture*)texture, &src_rect, &dst_rect);
+}

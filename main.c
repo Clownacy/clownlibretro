@@ -12,6 +12,8 @@
 #include "SDL.h"
 
 #include "audio.h"
+#include "file.h"
+#include "font.h"
 #include "libretro.h"
 #include "video.h"
 
@@ -338,48 +340,6 @@ static int16_t Callback_InputState(unsigned int port, unsigned int device, unsig
 	return 0;
 }
 
-  ////////////////
- // Other junk //
-////////////////
-
-static bool FileToMemory(const char *filename, unsigned char **buffer, size_t *size)
-{
-	FILE *file = fopen(filename, "rb");
-
-	if (file != NULL)
-	{
-		fseek(file, 0, SEEK_END);
-		*size = ftell(file);
-		*buffer = malloc(*size);
-		rewind(file);
-		fread(*buffer, 1, *size, file);
-		fclose(file);
-
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-static bool MemoryToFile(const char *filename, const unsigned char *buffer, size_t size)
-{
-	FILE *file = fopen(filename, "wb");
-
-	if (file != NULL)
-	{
-		fwrite(buffer, 1, size, file);
-		fclose(file);
-
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
   //////////
  // Main //
 //////////
@@ -501,153 +461,164 @@ int main(int argc, char **argv)
 						{
 							audio_initialised = Audio_Init(system_av_info.timing.sample_rate);
 
-							main_return = EXIT_SUCCESS;
+							Font *font = LoadFreeTypeFont("font", 10, 20, true);
 
-							// Read save data from file
-							unsigned char *save_file_buffer;
-							size_t save_file_size;
-							if (FileToMemory(save_file_path, &save_file_buffer, &save_file_size))
+							if (font != NULL)
 							{
-								memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
+								main_return = EXIT_SUCCESS;
 
-								free(save_file_buffer);
+								// Read save data from file
+								unsigned char *save_file_buffer;
+								size_t save_file_size;
+								if (FileToMemory(save_file_path, &save_file_buffer, &save_file_size))
+								{
+									memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
 
-								fputs("Save file read\n", stderr);
+									free(save_file_buffer);
+
+									fputs("Save file read\n", stderr);
+								}
+								else
+								{
+									fputs("Save file could not be read\n", stderr);
+								}
+
+								// Begin the mainloop
+								quit = false;
+
+								while (!quit)
+								{
+									// Handle events
+									SDL_Event event;
+									while (SDL_PollEvent(&event))
+									{
+										static bool alt_held;
+
+										if (event.key.keysym.sym == SDLK_LALT)
+											alt_held = event.key.state == SDL_PRESSED;
+
+										switch (event.type)
+										{
+											case SDL_QUIT:
+												quit = true;
+												break;
+
+											case SDL_KEYDOWN:
+											case SDL_KEYUP:
+												switch (event.key.keysym.scancode)
+												{
+													case SDL_SCANCODE_W:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_A:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_S:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_D:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_P:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_O:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_0:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_9:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_8:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_7:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_L:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_MINUS:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_EQUALS:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_SEMICOLON:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3] = event.key.state == SDL_PRESSED;
+														break;
+
+													case SDL_SCANCODE_RETURN:
+														if (event.key.state == SDL_PRESSED && alt_held)
+														{
+															static bool fullscreen = false;
+															fullscreen = !fullscreen;
+
+															Video_SetFullscreen(fullscreen);
+														}
+														else
+														{
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START] = event.key.state == SDL_PRESSED;
+														}
+
+														break;
+
+													case SDL_SCANCODE_BACKSPACE:
+														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT] = event.key.state == SDL_PRESSED;
+														break;
+
+													default:
+														break;
+												}
+
+												break;
+										}
+									}
+
+									// Update the core
+									core.retro_run();
+
+									Video_Display();
+
+									// Delay until the next frame
+									static double ticks_next;
+									const Uint32 ticks_now = SDL_GetTicks();
+
+									if (ticks_now < ticks_next)
+										SDL_Delay(ticks_next - ticks_now);
+
+									ticks_next += 1000.0 / frames_per_second;
+								}
+
+								if (core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) != 0)
+								{
+									// Write save data to file
+									if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
+										fputs("Save file written\n", stderr);
+									else
+										fputs("Save file could not be written\n", stderr);
+								}
+
+								UnloadFont(font);
 							}
 							else
 							{
-								fputs("Save file could not be read\n", stderr);
-							}
-
-							// Begin the mainloop
-							quit = false;
-
-							while (!quit)
-							{
-								// Handle events
-								SDL_Event event;
-								while (SDL_PollEvent(&event))
-								{
-									static bool alt_held;
-
-									if (event.key.keysym.sym == SDLK_LALT)
-										alt_held = event.key.state == SDL_PRESSED;
-
-									switch (event.type)
-									{
-										case SDL_QUIT:
-											quit = true;
-											break;
-
-										case SDL_KEYDOWN:
-										case SDL_KEYUP:
-											switch (event.key.keysym.scancode)
-											{
-												case SDL_SCANCODE_W:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_A:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_S:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_D:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_P:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_O:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_0:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_9:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_8:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_7:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_L:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_MINUS:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_EQUALS:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_SEMICOLON:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3] = event.key.state == SDL_PRESSED;
-													break;
-
-												case SDL_SCANCODE_RETURN:
-													if (event.key.state == SDL_PRESSED && alt_held)
-													{
-														static bool fullscreen = false;
-														fullscreen = !fullscreen;
-
-														Video_SetFullscreen(fullscreen);
-													}
-													else
-													{
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START] = event.key.state == SDL_PRESSED;
-													}
-
-													break;
-
-												case SDL_SCANCODE_BACKSPACE:
-													retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT] = event.key.state == SDL_PRESSED;
-													break;
-
-												default:
-													break;
-											}
-
-											break;
-									}
-								}
-
-								// Update the core
-								core.retro_run();
-
-								Video_Display();
-
-								// Delay until the next frame
-								static double ticks_next;
-								const Uint32 ticks_now = SDL_GetTicks();
-
-								if (ticks_now < ticks_next)
-									SDL_Delay(ticks_next - ticks_now);
-
-								ticks_next += 1000.0 / frames_per_second;
-							}
-
-							if (core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) != 0)
-							{
-								// Write save data to file
-								if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
-									fputs("Save file written\n", stderr);
-								else
-									fputs("Save file could not be written\n", stderr);
+								fputs("Failed to load font\n", stderr);
 							}
 
 							// Begin teardown
