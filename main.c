@@ -368,7 +368,7 @@ static int16_t Callback_InputState(unsigned int port, unsigned int device, unsig
 	(void)index;
 
 	if (port == 0 && device == RETRO_DEVICE_JOYPAD)
-		return retropad.buttons[id];
+		return retropad.buttons[id].held;
 
 	return 0;
 }
@@ -534,6 +534,8 @@ int main(int argc, char **argv)
 									{
 										if (!HandleEvents())
 											quit = true;
+
+										Input_Update();
 
 										// Update the core
 										core.retro_run();
