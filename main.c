@@ -20,7 +20,15 @@
 static double frames_per_second;
 static bool audio_initialised;
 
-static enum retro_pixel_format pixel_format;
+static size_t window_width;
+static size_t window_height;
+
+static Video_Texture *core_framebuffer;
+static size_t core_framebuffer_display_width;
+static size_t core_framebuffer_display_height;
+static float core_framebuffer_display_aspect_ratio;
+static Video_Format core_framebuffer_format;
+static size_t size_of_framebuffer_pixel;
 
 static char libretro_path[PATH_MAX];
 static char *pref_path;
@@ -145,19 +153,30 @@ static void Callback_Shutdown(void)
 	quit = true;
 }
 
-static bool Callback_SetPixelFormat(const enum retro_pixel_format *_pixel_format)
+static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
 {
-	switch (*_pixel_format)
+	switch (*pixel_format)
 	{
 		case RETRO_PIXEL_FORMAT_0RGB1555:
+			core_framebuffer_format = VIDEO_FORMAT_0RGB1555;
+			size_of_framebuffer_pixel = 2;
+			break;
+
 		case RETRO_PIXEL_FORMAT_XRGB8888:
+			core_framebuffer_format = VIDEO_FORMAT_XRGB8888;
+			size_of_framebuffer_pixel = 4;
+			break;
+
 		case RETRO_PIXEL_FORMAT_RGB565:
-			pixel_format = *_pixel_format;
-			return true;
+			core_framebuffer_format = VIDEO_FORMAT_RGB565;
+			size_of_framebuffer_pixel = 2;
+			break;
 
 		default:
 			return false;
 	}
+
+	return true;
 }
 
 static void Callback_GetLibretroPath(const char **path)
@@ -222,8 +241,12 @@ static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_a
 {
 	frames_per_second = system_av_info->timing.fps;
 
-	Video_Deinit();
-	Video_Init(&system_av_info->geometry, pixel_format);
+	core_framebuffer_display_width = system_av_info->geometry.base_width;
+	core_framebuffer_display_height = system_av_info->geometry.base_height;
+	core_framebuffer_display_aspect_ratio = system_av_info->geometry.aspect_ratio;
+
+	Video_TextureDestroy(core_framebuffer);
+	Video_TextureCreate(system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, true);
 
 	if (audio_initialised)
 	{
@@ -236,7 +259,9 @@ static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_a
 
 static void Callback_SetGeometry(const struct retro_game_geometry *geometry)
 {
-	Video_SetOutputSize(geometry->base_width, geometry->base_height);
+	core_framebuffer_display_width = geometry->base_width;
+	core_framebuffer_display_height = geometry->base_height;
+	core_framebuffer_display_aspect_ratio = geometry->aspect_ratio;
 }
 
 static void Callback_GetInputMaxUsers(unsigned int *max_users)
@@ -304,7 +329,21 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned int height, size_t pitch)
 {
 	if (data != NULL)
-		Video_CoreRefresh(data, width, height, pitch);
+	{
+		const unsigned char *source_pixels = data;
+		unsigned char *destination_pixels;
+
+		Video_Rect rect = {0, 0, width, height};
+		size_t destination_pitch;
+
+		if (Video_TextureLock(core_framebuffer, &rect, &destination_pixels, &destination_pitch))
+		{
+			for (unsigned int y = 0; y < height; ++y)
+				memcpy(&destination_pixels[destination_pitch * y], &source_pixels[pitch * y], width * size_of_framebuffer_pixel);
+
+			Video_TextureUnlock(core_framebuffer);
+		}
+	}
 }
 
 static size_t Callback_AudioSampleBatch(const int16_t *data, size_t frames)
@@ -380,7 +419,7 @@ int main(int argc, char **argv)
 		{
 			if (core.retro_api_version() == RETRO_API_VERSION)
 			{
-				pixel_format = RETRO_PIXEL_FORMAT_0RGB1555;
+				core_framebuffer_format = VIDEO_FORMAT_0RGB1555;
 
 				core.retro_set_environment(Callback_Environment);
 				core.retro_set_video_refresh(Callback_VideoRefresh);
@@ -457,175 +496,226 @@ int main(int argc, char **argv)
 					// Initialise SDL2 video and audio
 					if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) == 0)
 					{
-						if (Video_Init(&system_av_info.geometry, pixel_format))
+						if (Video_Init(system_av_info.geometry.base_width, system_av_info.geometry.base_height))
 						{
-							audio_initialised = Audio_Init(system_av_info.timing.sample_rate);
+							window_width = system_av_info.geometry.base_width;
+							window_height = system_av_info.geometry.base_height;
 
-							Font *font = LoadFreeTypeFont("font", 10, 20, true);
+							core_framebuffer = Video_TextureCreate(system_av_info.geometry.max_width, system_av_info.geometry.max_height, core_framebuffer_format, true);
 
-							if (font != NULL)
+							if (core_framebuffer != NULL)
 							{
-								main_return = EXIT_SUCCESS;
+								core_framebuffer_display_width = system_av_info.geometry.base_width;
+								core_framebuffer_display_height = system_av_info.geometry.base_height;
+								core_framebuffer_display_aspect_ratio = system_av_info.geometry.aspect_ratio;
 
-								// Read save data from file
-								unsigned char *save_file_buffer;
-								size_t save_file_size;
-								if (FileToMemory(save_file_path, &save_file_buffer, &save_file_size))
+								audio_initialised = Audio_Init(system_av_info.timing.sample_rate);
+
+								Font *font = LoadFreeTypeFont("font", 10, 20, true);
+
+								if (font != NULL)
 								{
-									memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
+									main_return = EXIT_SUCCESS;
 
-									free(save_file_buffer);
+									// Read save data from file
+									unsigned char *save_file_buffer;
+									size_t save_file_size;
+									if (FileToMemory(save_file_path, &save_file_buffer, &save_file_size))
+									{
+										memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
 
-									fputs("Save file read\n", stderr);
+										free(save_file_buffer);
+
+										fputs("Save file read\n", stderr);
+									}
+									else
+									{
+										fputs("Save file could not be read\n", stderr);
+									}
+
+									// Begin the mainloop
+									quit = false;
+
+									while (!quit)
+									{
+										// Handle events
+										SDL_Event event;
+										while (SDL_PollEvent(&event))
+										{
+											static bool alt_held;
+
+											if (event.key.keysym.sym == SDLK_LALT)
+												alt_held = event.key.state == SDL_PRESSED;
+
+											switch (event.type)
+											{
+												case SDL_QUIT:
+													quit = true;
+													break;
+
+												case SDL_WINDOWEVENT:
+													switch (event.window.event)
+													{
+														case SDL_WINDOWEVENT_SIZE_CHANGED:
+															window_width = event.window.data1;
+															window_height = event.window.data2;
+															break;
+													}
+
+													break;
+
+												case SDL_KEYDOWN:
+												case SDL_KEYUP:
+													switch (event.key.keysym.scancode)
+													{
+														case SDL_SCANCODE_W:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_A:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_S:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_D:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_P:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_O:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_0:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_9:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_8:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_7:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_L:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_MINUS:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_EQUALS:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_SEMICOLON:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3] = event.key.state == SDL_PRESSED;
+															break;
+
+														case SDL_SCANCODE_RETURN:
+															if (event.key.state == SDL_PRESSED && alt_held)
+															{
+																static bool fullscreen = false;
+																fullscreen = !fullscreen;
+
+																Video_SetFullscreen(fullscreen);
+															}
+															else
+															{
+																retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START] = event.key.state == SDL_PRESSED;
+															}
+
+															break;
+
+														case SDL_SCANCODE_BACKSPACE:
+															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT] = event.key.state == SDL_PRESSED;
+															break;
+
+														default:
+															break;
+													}
+
+													break;
+											}
+										}
+
+										// Update the core
+										core.retro_run();
+
+										// Draw stuff
+										Video_Clear();
+
+										size_t dst_width;
+										size_t dst_height;
+
+										if ((float)window_width / (float)window_height < core_framebuffer_display_aspect_ratio)
+										{
+											dst_width = window_width;
+											dst_height = window_width / core_framebuffer_display_aspect_ratio;
+										}
+										else
+										{
+											dst_width = window_height * core_framebuffer_display_aspect_ratio;
+											dst_height = window_height;
+										}
+
+										Video_Rect src_rect = {0, 0, core_framebuffer_display_width, core_framebuffer_display_height};
+										Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
+
+										Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, 0xFF, 0xFF, 0xFF);
+
+										Video_Display();
+
+										// Delay until the next frame
+										static double ticks_next;
+										const Uint32 ticks_now = SDL_GetTicks();
+
+										if (ticks_now < ticks_next)
+											SDL_Delay(ticks_next - ticks_now);
+
+										ticks_next += 1000.0 / frames_per_second;
+									}
+
+									if (core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) != 0)
+									{
+										// Write save data to file
+										if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
+											fputs("Save file written\n", stderr);
+										else
+											fputs("Save file could not be written\n", stderr);
+									}
+
+									UnloadFont(font);
 								}
 								else
 								{
-									fputs("Save file could not be read\n", stderr);
+									fputs("Failed to load font\n", stderr);
 								}
 
-								// Begin the mainloop
-								quit = false;
-
-								while (!quit)
+								// Begin teardown
+								if (audio_initialised)
 								{
-									// Handle events
-									SDL_Event event;
-									while (SDL_PollEvent(&event))
-									{
-										static bool alt_held;
-
-										if (event.key.keysym.sym == SDLK_LALT)
-											alt_held = event.key.state == SDL_PRESSED;
-
-										switch (event.type)
-										{
-											case SDL_QUIT:
-												quit = true;
-												break;
-
-											case SDL_KEYDOWN:
-											case SDL_KEYUP:
-												switch (event.key.keysym.scancode)
-												{
-													case SDL_SCANCODE_W:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_A:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_S:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_D:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_P:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_O:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_0:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_9:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_8:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_7:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_L:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_MINUS:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_EQUALS:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_SEMICOLON:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3] = event.key.state == SDL_PRESSED;
-														break;
-
-													case SDL_SCANCODE_RETURN:
-														if (event.key.state == SDL_PRESSED && alt_held)
-														{
-															static bool fullscreen = false;
-															fullscreen = !fullscreen;
-
-															Video_SetFullscreen(fullscreen);
-														}
-														else
-														{
-															retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START] = event.key.state == SDL_PRESSED;
-														}
-
-														break;
-
-													case SDL_SCANCODE_BACKSPACE:
-														retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT] = event.key.state == SDL_PRESSED;
-														break;
-
-													default:
-														break;
-												}
-
-												break;
-										}
-									}
-
-									// Update the core
-									core.retro_run();
-
-									Video_Display();
-
-									// Delay until the next frame
-									static double ticks_next;
-									const Uint32 ticks_now = SDL_GetTicks();
-
-									if (ticks_now < ticks_next)
-										SDL_Delay(ticks_next - ticks_now);
-
-									ticks_next += 1000.0 / frames_per_second;
+									Audio_Deinit();
+									audio_initialised = false;
 								}
 
-								if (core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) != 0)
-								{
-									// Write save data to file
-									if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
-										fputs("Save file written\n", stderr);
-									else
-										fputs("Save file could not be written\n", stderr);
-								}
-
-								UnloadFont(font);
+								Video_TextureDestroy(core_framebuffer);
 							}
 							else
 							{
-								fputs("Failed to load font\n", stderr);
-							}
-
-							// Begin teardown
-							if (audio_initialised)
-							{
-								Audio_Deinit();
-								audio_initialised = false;
+								fputs("Failed to create core framebuffer texture\n", stderr);
 							}
 
 							Video_Deinit();

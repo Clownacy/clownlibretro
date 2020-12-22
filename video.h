@@ -5,8 +5,6 @@
 
 #include "SDL.h"
 
-#include "libretro.h"
-
 typedef struct Video_Rect
 {
 	size_t x;
@@ -15,18 +13,25 @@ typedef struct Video_Rect
 	size_t height;
 } Video_Rect;
 
+typedef enum Video_Format
+{
+	VIDEO_FORMAT_0RGB1555,
+	VIDEO_FORMAT_XRGB8888,
+	VIDEO_FORMAT_RGB565,
+	VIDEO_FORMAT_RGBA32
+} Video_Format;
+
 typedef struct Video_Texture Video_Texture;
 
-bool Video_Init(const struct retro_game_geometry *geometry, enum retro_pixel_format pixel_format);
+bool Video_Init(size_t window_width, size_t window_height);
 void Video_Deinit(void);
-void Video_CoreRefresh(const void *data, unsigned int width, unsigned int height, size_t pitch);
+void Video_Clear(void);
 void Video_Display(void);
-void Video_SetOutputSize(unsigned int width, unsigned int height);
 void Video_SetFullscreen(bool fullscreen);
 
-Video_Texture* Video_TextureCreate(size_t width, size_t height);
+Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format format, bool streaming);
 void Video_TextureDestroy(Video_Texture *texture);
 void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitch, const Video_Rect *rect);
 bool Video_TextureLock(Video_Texture *texture, const Video_Rect *rect, unsigned char **buffer, size_t *pitch);
 void Video_TextureUnlock(Video_Texture *texture);
-void Video_TextureDraw(Video_Texture *texture, size_t dst_x, size_t dst_y, const Video_Rect *src_rect, unsigned char red, unsigned char green, unsigned char blue);
+void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const Video_Rect *src_rect, unsigned char red, unsigned char green, unsigned char blue);

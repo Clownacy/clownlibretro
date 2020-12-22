@@ -320,7 +320,7 @@ Font* LoadFreeTypeFontFromData(const unsigned char *data, size_t data_size, size
 					size_t atlas_columns = ceil(sqrt(atlas_entry_width * atlas_entry_height * TOTAL_GLYPH_SLOTS) / atlas_entry_width);
 					size_t atlas_rows = (TOTAL_GLYPH_SLOTS + (atlas_columns - 1)) / atlas_columns;
 
-					font->atlas = Video_TextureCreate(atlas_columns * atlas_entry_width, atlas_rows * atlas_entry_height);
+					font->atlas = Video_TextureCreate(atlas_columns * atlas_entry_width, atlas_rows * atlas_entry_height, VIDEO_FORMAT_RGBA32, false);
 
 					if (font->atlas != NULL)
 					{
@@ -485,10 +485,11 @@ void DrawText(Font *font, Video_Texture *surface, int x, int y, unsigned long co
 				const long letter_x = x + pen_x + glyph->x_offset;
 				const long letter_y = y + glyph->y_offset;
 
-				Video_Rect rect = {glyph->x, glyph->y, glyph->width, glyph->height};
+				Video_Rect src_rect = {glyph->x, glyph->y, glyph->width, glyph->height};
+				Video_Rect dst_rect = {letter_x, letter_y, glyph->width, glyph->height};
 
 //				RenderBackend_DrawGlyph(letter_x, letter_y, glyph->x, glyph->y, glyph->width, glyph->height);
-				Video_TextureDraw(font->atlas, letter_x, letter_y, &rect, colour & 0xFF, (colour >> 8) & 0xFF, (colour >> 16) & 0xFF);
+				Video_TextureDraw(font->atlas, &dst_rect, &src_rect, colour & 0xFF, (colour >> 8) & 0xFF, (colour >> 16) & 0xFF);
 
 				pen_x += glyph->x_advance;
 			}
