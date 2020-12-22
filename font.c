@@ -220,7 +220,10 @@ static Glyph* GetGlyph(Font *font, unsigned long unicode_value)
 			glyph->x_advance = font->face->glyph->advance.x / 64;
 
 			if (glyph->width != 0 && glyph->height != 0)	// Some glyphs are just plain empty - don't bother trying to upload them
-				Video_TextureUpdate(font->atlas, bitmap.buffer, glyph->width, glyph->x, glyph->y, glyph->width, glyph->height);
+			{
+				Video_Rect rect = {glyph->x, glyph->y, glyph->width, glyph->height};
+				Video_TextureUpdate(font->atlas, bitmap.buffer, glyph->width, &rect);
+			}
 
 			FT_Bitmap_Done(font->library, &bitmap);
 
@@ -482,8 +485,10 @@ void DrawText(Font *font, Video_Texture *surface, int x, int y, unsigned long co
 				const long letter_x = x + pen_x + glyph->x_offset;
 				const long letter_y = y + glyph->y_offset;
 
+				Video_Rect rect = {glyph->x, glyph->y, glyph->width, glyph->height};
+
 //				RenderBackend_DrawGlyph(letter_x, letter_y, glyph->x, glyph->y, glyph->width, glyph->height);
-				Video_TextureDraw(font->atlas, letter_x, letter_y, glyph->x, glyph->y, glyph->width, glyph->height, colour & 0xFF, (colour >> 8) & 0xFF, (colour >> 16) & 0xFF);
+				Video_TextureDraw(font->atlas, letter_x, letter_y, &rect, colour & 0xFF, (colour >> 8) & 0xFF, (colour >> 16) & 0xFF);
 
 				pen_x += glyph->x_advance;
 			}
