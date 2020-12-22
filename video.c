@@ -6,6 +6,12 @@
 
 #include "SDL.h"
 
+struct Video_Texture
+{
+	SDL_Texture *sdl_texture;
+	Video_Format format;
+};
+
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 
@@ -51,27 +57,69 @@ void Video_SetFullscreen(bool fullscreen)
 
 Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format format, bool streaming)
 {
-	SDL_PixelFormatEnum sdl_formats[] = {SDL_PIXELFORMAT_ARGB1555, SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA32};
-
-	SDL_Texture *texture = SDL_CreateTexture(renderer, sdl_formats[format], streaming ? SDL_TEXTUREACCESS_STREAMING : SDL_TEXTUREACCESS_STATIC, width, height);
+	Video_Texture *texture = malloc(sizeof(Video_Texture));
 
 	if (texture != NULL)
-		if (format != VIDEO_FORMAT_RGBA32)
-			SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
+	{
+		const SDL_PixelFormatEnum sdl_formats[] = {SDL_PIXELFORMAT_ARGB1555, SDL_PIXELFORMAT_ARGB8888, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA32};
 
-	return (Video_Texture*)texture;
+		texture->sdl_texture = SDL_CreateTexture(renderer, sdl_formats[format], streaming ? SDL_TEXTUREACCESS_STREAMING : SDL_TEXTUREACCESS_STATIC, width, height);
+
+		if (texture->sdl_texture != NULL)
+		{
+			texture->format = format;
+
+			SDL_SetTextureBlendMode(texture->sdl_texture, format == VIDEO_FORMAT_A8 ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE);
+
+			return texture;
+		}
+
+		free(texture);
+	}
+
+	return NULL;
 }
 
 void Video_TextureDestroy(Video_Texture *texture)
 {
-	SDL_DestroyTexture((SDL_Texture*)texture);
+	SDL_DestroyTexture(texture->sdl_texture);
+	free(texture);
 }
 
 void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitch, const Video_Rect *rect)
 {
 	SDL_Rect sdl_rect = {rect->x, rect->y, rect->width, rect->height};
 
-	SDL_UpdateTexture((SDL_Texture*)texture, &sdl_rect, pixels, pitch);
+	if (texture->format == VIDEO_FORMAT_A8)
+	{
+		unsigned char *rgba_pixels = malloc(rect->width * rect->height * 4);
+
+		if (rgba_pixels != NULL)
+		{
+			unsigned char *rgba_pointer = rgba_pixels;
+
+			for (size_t y = 0; y < rect->height; ++y)
+			{
+				const unsigned char *pixels_pointer = &((const unsigned char*)pixels)[y * pitch];
+
+				for (size_t x = 0; x < rect->width; ++x)
+				{
+					*rgba_pointer++ = 0xFF;
+					*rgba_pointer++ = 0xFF;
+					*rgba_pointer++ = 0xFF;
+					*rgba_pointer++ = *pixels_pointer++;
+				}
+			}
+
+			SDL_UpdateTexture(texture->sdl_texture, &sdl_rect, rgba_pixels, rect->width * 4);
+
+			free(rgba_pixels);
+		}
+	}
+	else
+	{
+		SDL_UpdateTexture(texture->sdl_texture, &sdl_rect, pixels, pitch);
+	}
 }
 
 bool Video_TextureLock(Video_Texture *texture, const Video_Rect *rect, unsigned char **buffer, size_t *pitch)
@@ -80,7 +128,7 @@ bool Video_TextureLock(Video_Texture *texture, const Video_Rect *rect, unsigned 
 
 	int int_pitch;
 
-	bool success = SDL_LockTexture((SDL_Texture*)texture, &sdl_rect, (void**)buffer, &int_pitch) == 0;
+	bool success = SDL_LockTexture(texture->sdl_texture, &sdl_rect, (void**)buffer, &int_pitch) == 0;
 
 	*pitch = (size_t)int_pitch;
 
@@ -89,7 +137,7 @@ bool Video_TextureLock(Video_Texture *texture, const Video_Rect *rect, unsigned 
 
 void Video_TextureUnlock(Video_Texture *texture)
 {
-	SDL_UnlockTexture((SDL_Texture*)texture);
+	SDL_UnlockTexture(texture->sdl_texture);
 }
 
 void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const Video_Rect *src_rect, unsigned char red, unsigned char green, unsigned char blue)
@@ -97,7 +145,7 @@ void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const
 	SDL_Rect src_sdl_rect = {src_rect->x, src_rect->y, src_rect->width, src_rect->height};
 	SDL_Rect dst_sdl_rect = {dst_rect->x, dst_rect->y, dst_rect->width, dst_rect->height};
 
-	SDL_SetTextureColorMod((SDL_Texture*)texture, red, green, blue);
+	SDL_SetTextureColorMod(texture->sdl_texture, red, green, blue);
 
-	SDL_RenderCopy(renderer, (SDL_Texture*)texture, &src_sdl_rect, &dst_sdl_rect);
+	SDL_RenderCopy(renderer, texture->sdl_texture, &src_sdl_rect, &dst_sdl_rect);
 }

@@ -263,7 +263,10 @@ static Glyph* GetGlyph(Font *font, unsigned long unicode_value)
 		glyph->x_advance = local_glyph->x_advance;
 
 		if (glyph->width != 0 && glyph->height != 0)	// Some glyphs are just plain empty - don't bother trying to upload them
-			Video_TextureUpdate(font->atlas, &font->image_buffer[local_glyph->y * font->image_buffer_width + local_glyph->x], font->image_buffer_width, glyph->x, glyph->y, glyph->width, glyph->height);
+		{
+			Video_Rect rect = {glyph->x, glyph->y, glyph->width, glyph->height};
+			Video_TextureUpdate(font->atlas, &font->image_buffer[local_glyph->y * font->image_buffer_width + local_glyph->x], font->image_buffer_width, &rect);
+		}
 
 		*glyph_pointer = glyph->next;
 		glyph->next = font->glyph_list_head;
@@ -320,7 +323,7 @@ Font* LoadFreeTypeFontFromData(const unsigned char *data, size_t data_size, size
 					size_t atlas_columns = ceil(sqrt(atlas_entry_width * atlas_entry_height * TOTAL_GLYPH_SLOTS) / atlas_entry_width);
 					size_t atlas_rows = (TOTAL_GLYPH_SLOTS + (atlas_columns - 1)) / atlas_columns;
 
-					font->atlas = Video_TextureCreate(atlas_columns * atlas_entry_width, atlas_rows * atlas_entry_height, VIDEO_FORMAT_RGBA32, false);
+					font->atlas = Video_TextureCreate(atlas_columns * atlas_entry_width, atlas_rows * atlas_entry_height, VIDEO_FORMAT_A8, false);
 
 					if (font->atlas != NULL)
 					{
@@ -463,7 +466,8 @@ Font* LoadBitmapFont(const char *bitmap_path, const char *metadata_path)
 
 void DrawText(Font *font, Video_Texture *surface, int x, int y, unsigned long colour, const char *string)
 {
-	if (font != NULL && surface != NULL)
+//	if (font != NULL && surface != NULL)
+	if (font != NULL)
 	{
 //		RenderBackend_PrepareToDrawGlyphs(font->atlas, surface, colour & 0xFF, (colour >> 8) & 0xFF, (colour >> 16) & 0xFF);
 

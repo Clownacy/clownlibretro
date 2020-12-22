@@ -15,10 +15,10 @@ typedef struct Video_Rect
 
 typedef enum Video_Format
 {
-	VIDEO_FORMAT_0RGB1555,
-	VIDEO_FORMAT_XRGB8888,
-	VIDEO_FORMAT_RGB565,
-	VIDEO_FORMAT_RGBA32
+	VIDEO_FORMAT_0RGB1555 = 0,
+	VIDEO_FORMAT_XRGB8888 = 1,
+	VIDEO_FORMAT_RGB565 = 2,
+	VIDEO_FORMAT_A8 = 3
 } Video_Format;
 
 typedef struct Video_Texture Video_Texture;

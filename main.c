@@ -676,6 +676,8 @@ int main(int argc, char **argv)
 
 										Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, 0xFF, 0xFF, 0xFF);
 
+										DrawText(font, NULL, 0, 0, 0xFFFFFFFF, "test");
+
 										Video_Display();
 
 										// Delay until the next frame
