@@ -566,9 +566,9 @@ int main(int argc, char **argv)
 										Video_Rect src_rect = {0, 0, core_framebuffer_display_width, core_framebuffer_display_height};
 										Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
 
-										Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, 0xFF, 0xFF, 0xFF);
+										Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, (Video_Colour){0xFF, 0xFF, 0xFF});
 
-										DrawText(font, NULL, 0, 0, 0xFFFFFFFF, "test");
+										DrawText(font, NULL, 0, 0, (Video_Colour){0xFF, 0xFF, 0xFF}, "test");
 
 										Video_Display();
 

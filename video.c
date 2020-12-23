@@ -143,12 +143,12 @@ void Video_TextureUnlock(Video_Texture *texture)
 	SDL_UnlockTexture(texture->sdl_texture);
 }
 
-void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const Video_Rect *src_rect, unsigned char red, unsigned char green, unsigned char blue)
+void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const Video_Rect *src_rect, Video_Colour colour)
 {
 	SDL_Rect src_sdl_rect = {src_rect->x, src_rect->y, src_rect->width, src_rect->height};
 	SDL_Rect dst_sdl_rect = {dst_rect->x, dst_rect->y, dst_rect->width, dst_rect->height};
 
-	SDL_SetTextureColorMod(texture->sdl_texture, red, green, blue);
+	SDL_SetTextureColorMod(texture->sdl_texture, colour.red, colour.green, colour.blue);
 
 	SDL_RenderCopy(renderer, texture->sdl_texture, &src_sdl_rect, &dst_sdl_rect);
 }

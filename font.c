@@ -470,7 +470,7 @@ Font* LoadBitmapFont(const char *bitmap_path, const char *metadata_path)
 }
 #endif
 
-void DrawText(Font *font, Video_Texture *surface, int x, int y, unsigned long colour, const char *string)
+void DrawText(Font *font, Video_Texture *surface, int x, int y, Video_Colour colour, const char *string)
 {
 //	if (font != NULL && surface != NULL)
 	if (font != NULL)
@@ -499,7 +499,7 @@ void DrawText(Font *font, Video_Texture *surface, int x, int y, unsigned long co
 				Video_Rect dst_rect = {letter_x, letter_y, glyph->width, glyph->height};
 
 //				RenderBackend_DrawGlyph(letter_x, letter_y, glyph->x, glyph->y, glyph->width, glyph->height);
-				Video_TextureDraw(font->atlas, &dst_rect, &src_rect, colour & 0xFF, (colour >> 8) & 0xFF, (colour >> 16) & 0xFF);
+				Video_TextureDraw(font->atlas, &dst_rect, &src_rect, colour);
 
 				pen_x += glyph->x_advance;
 			}

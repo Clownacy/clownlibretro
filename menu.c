@@ -61,12 +61,12 @@ typedef struct OptionsMenu
 	bool submenu;
 } OptionsMenu;
 
-static void PutText(int x, int y, const char *text, unsigned long color)
+static void PutText(int x, int y, const char *text, Video_Colour color)
 {
 	DrawText(menu_font, NULL, x, y, color, text);
 }
 
-static void PutTextCentred(int x, int y, const char *text, unsigned long color)
+static void PutTextCentred(int x, int y, const char *text, Video_Colour color)
 {
 	size_t string_width = 0;
 	size_t string_height = font_height;
@@ -175,11 +175,11 @@ static int EnterOptionsMenu(OptionsMenu *options_menu, size_t selected_option)
 		int y = (window_height / 2) - ((visible_options * 20) / 2) - (40 / 2);
 
 		// Draw title
-		PutTextCentred(window_width / 2, y, options_menu->title, RGB(0xFF, 0xFF, 0xFF));
+		PutTextCentred(window_width / 2, y, options_menu->title, (Video_Colour){0xFF, 0xFF, 0xFF});
 
 		// Draw subtitle
 		if (options_menu->subtitle != NULL)
-			PutTextCentred(window_width / 2, y + 14, options_menu->subtitle, RGB(0xFF, 0xFF, 0xFF));
+			PutTextCentred(window_width / 2, y + 14, options_menu->subtitle, (Video_Colour){0xFF, 0xFF, 0xFF});
 
 		y += 40;
 
@@ -191,7 +191,7 @@ static int EnterOptionsMenu(OptionsMenu *options_menu, size_t selected_option)
 //			if (i == selected_option)
 //				PutBitmap3(&grcFull, PixelToScreenCoord(x - 20), PixelToScreenCoord(y - 8), &rcMyChar[anime / 10 % 4], SURFACE_ID_MY_CHAR);
 
-			unsigned long option_colour = options_menu->options[i].disabled ? RGB(0x80, 0x80, 0x80) : RGB(0xFF, 0xFF, 0xFF);
+			Video_Colour option_colour = options_menu->options[i].disabled ? (Video_Colour){0x80, 0x80, 0x80} : (Video_Colour){0xFF, 0xFF, 0xFF};
 
 			// Draw option name
 			PutText(x, y - font_height / 2, options_menu->options[i].name, option_colour);
