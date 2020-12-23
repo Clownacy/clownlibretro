@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 
+#include "libretro.h"
+
 typedef struct Retropad
 {
 	struct

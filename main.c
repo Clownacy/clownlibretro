@@ -535,6 +535,9 @@ int main(int argc, char **argv)
 										if (!HandleEvents())
 											quit = true;
 
+										if (retropad.buttons[RETRO_DEVICE_ID_ANALOG_Y].pressed)
+											EnterMenu(font);
+
 										Input_Update();
 
 										// Update the core
