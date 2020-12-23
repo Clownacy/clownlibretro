@@ -19,6 +19,8 @@
 #include "libretro.h"
 #include "video.h"
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 static double frames_per_second;
 static bool audio_initialised;
 
@@ -576,7 +578,7 @@ int main(int argc, char **argv)
 										if (ticks_now < ticks_next)
 											SDL_Delay(ticks_next - ticks_now);
 
-										ticks_next += 1000.0 / frames_per_second;
+										ticks_next = MAX(ticks_next, ticks_now) + 1000.0 / frames_per_second;
 									}
 
 									if (core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) != 0)
