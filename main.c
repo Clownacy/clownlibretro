@@ -17,6 +17,7 @@
 #include "font.h"
 #include "input.h"
 #include "libretro.h"
+#include "menu.h"
 #include "video.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
