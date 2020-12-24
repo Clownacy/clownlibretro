@@ -108,11 +108,18 @@ void Menu_Update(Menu *menu)
 
 void Menu_Draw(Menu *menu)
 {
-	if (menu->selected_option != 0)
-		DrawOption(menu, menu->selected_option - 1, window_width / 2, window_height / 2 - 80, (Video_Colour){0xFF, 0xFF, 0xFF});
+	if (menu->total_options == 0)
+	{
+		DrawTextCentered("NO OPTIONS", window_width / 2, window_height / 2, (Video_Colour){0xFF, 0xFF, 0xFF});
+	}
+	else
+	{
+		if (menu->selected_option != 0)
+			DrawOption(menu, menu->selected_option - 1, window_width / 2, window_height / 2 - 80, (Video_Colour){0xFF, 0xFF, 0xFF});
 
-	DrawOption(menu, menu->selected_option, window_width / 2, window_height / 2, (Video_Colour){0xFF, 0xFF, 0x80});
+		DrawOption(menu, menu->selected_option, window_width / 2, window_height / 2, (Video_Colour){0xFF, 0xFF, 0x80});
 
-	if (menu->selected_option != menu->total_options - 1)
-		DrawOption(menu, menu->selected_option + 1, window_width / 2, window_height / 2 + 80, (Video_Colour){0xFF, 0xFF, 0xFF});
+		if (menu->selected_option != menu->total_options - 1)
+			DrawOption(menu, menu->selected_option + 1, window_width / 2, window_height / 2 + 80, (Video_Colour){0xFF, 0xFF, 0xFF});
+	}
 }

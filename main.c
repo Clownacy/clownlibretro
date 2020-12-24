@@ -34,8 +34,8 @@ static int OptionsMenuCallback(Menu_Option *option, Menu_CallbackAction action, 
 	switch (action)
 	{
 		case MENU_INIT:
-			option->label = variable->definition.desc;
-			option->value = variable->definition.values[variable->selected_value].value;
+			option->label = variable->desc;
+			option->value = variable->values[variable->selected_value].value;
 			break;
 
 		case MENU_DEINIT:
@@ -62,7 +62,7 @@ static int OptionsMenuCallback(Menu_Option *option, Menu_CallbackAction action, 
 					++variable->selected_value;
 			}
 
-			option->value = variable->definition.values[variable->selected_value].value;
+			option->value = variable->values[variable->selected_value].value;
 
 			break;
 	}
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
 													size_t total_variables;
 													CoreRunner_GetVariables(&variables, &total_variables);
 
-													Menu_Callback callbacks[total_variables];
+													Menu_Callback callbacks[total_variables]; // TODO: Get rid of this VLA
 													for (size_t i = 0; i < total_variables; ++i)
 													{
 														callbacks[i].function = OptionsMenuCallback;

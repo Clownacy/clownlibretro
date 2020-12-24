@@ -1,12 +1,18 @@
 #pragma once
 
 #include <stdbool.h>
-
-#include "libretro.h"
+#include <stddef.h>
 
 typedef struct Variable
 {
-	struct retro_core_option_definition definition;
+	const char *key;
+	const char *desc;
+	const char *info;
+	struct
+	{
+		const char *value;
+		const char *label;
+	} values[128]; // See `RETRO_NUM_CORE_OPTION_VALUES_MAX`
 	size_t total_values;
 	size_t selected_value;
 } Variable;

@@ -175,7 +175,15 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 				++variables[i].total_values;
 			}
 
-			variables[i].definition = options[i];
+			variables[i].key = options[i].key;
+			variables[i].desc = options[i].desc;
+			variables[i].info = options[i].info;
+
+			for (size_t j = 0; j < variables[i].total_values; ++j)
+			{
+				variables[i].values[j].value = options[i].values[j].value;
+				variables[i].values[j].label = options[i].values[j].label;
+			}
 		}
 	}
 }
@@ -224,8 +232,8 @@ static void Callback_GetVariable(struct retro_variable *variable)
 {
 	for (size_t i = 0; i < total_variables; ++i)
 	{
-		if (!strcmp(variables[i].definition.key, variable->key))
-			variable->value = variables[i].definition.values[variables[i].selected_value].value;
+		if (!strcmp(variables[i].key, variable->key))
+			variable->value = variables[i].values[variables[i].selected_value].value;
 	}
 }
 
@@ -707,6 +715,8 @@ void CoreRunner_Deinit(void)
 
 	free(game_path);
 	free(core_path);
+
+	free(variables);
 }
 
 bool CoreRunner_Update(void)
