@@ -69,7 +69,8 @@ int main(int argc, char **argv)
 
 						Input_Update();
 
-						CoreRunner_Update();
+						if (!CoreRunner_Update())
+							quit = true;
 
 						// Draw stuff
 						Video_Clear();
