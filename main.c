@@ -283,7 +283,8 @@ int main(int argc, char **argv)
 
 						if (menu_open)
 						{
-							Video_ColourFill((Video_Colour){0, 0, 0}, 0x80);
+							Video_Rect rect = {0, window_height / 2 - 130, window_width, 260};
+							Video_ColourFill(&rect, (Video_Colour){0, 0, 0}, 0xA0);
 							Menu_Draw(menu);
 						}
 
