@@ -19,6 +19,9 @@
 #include "libretro.h"
 #include "video.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 typedef struct Core
 { 
 	void *handle;
@@ -796,19 +799,10 @@ bool CoreRunner_Update(void)
 void CoreRunner_Draw(void)
 {
 	// Draw stuff
-	size_t dst_width;
-	size_t dst_height;
+	size_t upscale_factor = MAX(1, MIN(window_width / core_framebuffer_display_width, window_height / core_framebuffer_display_height));
 
-	if ((float)window_width / (float)window_height < core_framebuffer_display_aspect_ratio)
-	{
-		dst_width = window_width;
-		dst_height = window_width / core_framebuffer_display_aspect_ratio;
-	}
-	else
-	{
-		dst_width = window_height * core_framebuffer_display_aspect_ratio;
-		dst_height = window_height;
-	}
+	size_t dst_width = core_framebuffer_display_width * upscale_factor;
+	size_t dst_height = core_framebuffer_display_height * upscale_factor;
 
 	Video_Rect src_rect = {0, 0, core_framebuffer_display_width, core_framebuffer_display_height};
 	Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
