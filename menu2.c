@@ -8,6 +8,23 @@
 #include "input.h"
 #include "video.h"
 
+struct Menu_Option
+{
+	Menu_Callback callback;
+
+	char *label;
+	char *sublabel;
+	char *value;
+	char *value_description;
+};
+
+struct Menu
+{
+	size_t selected_option;
+	size_t total_options;
+	Menu_Option options[];
+};
+
 static Font *font;
 static size_t font_width;
 static size_t font_height;
@@ -49,7 +66,7 @@ Menu* Menu_Create(Menu_Callback *callbacks, size_t total_callbacks)
 		{
 			menu->options[i].callback = callbacks[i];
 
-			callbacks[i](&menu->options[i], MENU_INIT);
+			callbacks[i].function(&menu->options[i], MENU_INIT, callbacks[i].user_data);
 		}
 	}
 
@@ -59,7 +76,7 @@ Menu* Menu_Create(Menu_Callback *callbacks, size_t total_callbacks)
 void Menu_Destroy(Menu *menu)
 {
 	for (size_t i = 0; i < menu->total_options; ++i)
-		menu->options[i].callback(&menu->options[i], MENU_DEINIT);
+		menu->options[i].callback.function(&menu->options[i], MENU_DEINIT, menu->options[i].callback.user_data);
 
 	free(menu);
 }
@@ -95,7 +112,7 @@ void Menu_Update(Menu *menu)
 				action = MENU_UPDATE_RIGHT;
 		}
 
-		menu->options[i].callback(&menu->options[i], action);
+		menu->options[i].callback.function(&menu->options[i], action, menu->options[i].callback.user_data);
 	}
 }
 

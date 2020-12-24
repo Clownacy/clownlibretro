@@ -64,6 +64,8 @@ static char *pref_path;
 static char *save_file_path;
 
 static Core core;
+static Variable *variables;
+static size_t total_variables;
 
 static unsigned char *game_buffer;
 
@@ -144,6 +146,37 @@ static void UnloadCore(Core *core)
 	dlclose(core->handle);
 }
 
+  ///////////////////
+ // Options stuff //
+///////////////////
+
+static void LoadOptions(const struct retro_core_option_definition *options)
+{
+	total_variables = 0;
+	for (const struct retro_core_option_definition *option = options; option->key != NULL; ++option)
+		++total_variables;
+
+	if (variables == NULL)
+		variables = malloc(sizeof(Variable) * total_variables);
+
+	if (variables != NULL)
+	{
+		for (size_t i = 0; i < total_variables; ++i)
+		{
+			variables[i].selected_value = 0;
+			for (const struct retro_core_option_value *value = options[i].values; value->value != NULL; ++value)
+			{
+				if (!strcmp(value->value, options[i].default_value))
+					break;
+
+				++variables[i].selected_value;
+			}
+
+			variables[i].definition = options[i];
+		}
+	}
+}
+
   ///////////////
  // Callbacks //
 ///////////////
@@ -182,6 +215,38 @@ static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
 	}
 
 	return true;
+}
+
+static void Callback_GetVariable(struct retro_variable *variable)
+{
+	for (size_t i = 0; i < total_variables; ++i)
+	{
+		if (!strcmp(variables[i].definition.key, variable->key))
+			variable->value = variables[i].definition.values[variables[i].selected_value].value;
+	}
+}
+
+static void Callback_SetVariables(const struct retro_variable *variables)
+{
+	/*if (variable_list_head == NULL)
+	{
+		for (const struct retro_variable *variable = variables; variable->key == NULL || variable->value == NULL; ++variable)
+		{
+			Variable *variable_list_entry = malloc(sizeof(Variable));
+
+			if (variable_list_entry != NULL)
+			{
+				variable_list_entry->key = variable->key;
+
+				variable_list_head
+			}
+		}
+	}*/
+}
+
+static void Callback_SetVariableUpdate(bool *update)
+{
+	*update = false; // TODO
 }
 
 static void Callback_GetLibretroPath(const char **path)
@@ -266,6 +331,21 @@ static void Callback_SetGeometry(const struct retro_game_geometry *geometry)
 	core_framebuffer_display_aspect_ratio = geometry->aspect_ratio;
 }
 
+static void Callback_GetCoreOptionsVersion(unsigned int *version)
+{
+	*version = 1; // TODO try this with 0
+}
+
+static void Callback_SetCoreOptions(const struct retro_core_option_definition *options)
+{
+	LoadOptions(options);
+}
+
+static void Callback_SetCoreOptionsIntl(const struct retro_core_options_intl *options)
+{
+	LoadOptions(options->us);
+}
+
 static void Callback_GetInputMaxUsers(unsigned int *max_users)
 {
 	*max_users = 1; // Hardcoded for now
@@ -287,6 +367,18 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 			if (!Callback_SetPixelFormat(data))
 				return false;
 
+			break;
+
+		case RETRO_ENVIRONMENT_GET_VARIABLE:
+			Callback_GetVariable(data);
+			break;
+
+		case RETRO_ENVIRONMENT_SET_VARIABLES:
+			Callback_SetVariables(data);
+			break;
+
+		case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
+			Callback_SetVariableUpdate(data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_LIBRETRO_PATH:
@@ -315,6 +407,18 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 
 		case RETRO_ENVIRONMENT_SET_GEOMETRY:
 			Callback_SetGeometry(data);
+			break;
+
+		case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
+			Callback_GetCoreOptionsVersion(data);
+			break;
+
+		case RETRO_ENVIRONMENT_SET_CORE_OPTIONS:
+			Callback_SetCoreOptions(data);
+			break;
+
+		case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL:
+			Callback_SetCoreOptionsIntl(data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS:
@@ -617,3 +721,10 @@ void CoreRunner_Draw(void)
 
 	Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, (Video_Colour){0xFF, 0xFF, 0xFF});
 }
+
+void CoreRunner_GetVariables(Variable **variables_pointer, size_t *total_variables_pointer)
+{
+	*variables_pointer = variables;
+	*total_variables_pointer = total_variables;
+}
+
