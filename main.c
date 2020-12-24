@@ -203,6 +203,26 @@ int main(int argc, char **argv)
 											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3].raw = event.key.state == SDL_PRESSED;
 											break;
 
+										case SDL_SCANCODE_RETURN:
+											if (event.key.state == SDL_PRESSED && alt_held)
+											{
+												static bool fullscreen = false;
+												fullscreen = !fullscreen;
+
+												Video_SetFullscreen(fullscreen);
+											}
+											else
+											{
+												retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START].raw = event.key.state == SDL_PRESSED;
+											}
+
+											break;
+
+										case SDL_SCANCODE_BACKSPACE:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].raw = event.key.state == SDL_PRESSED;
+											break;
+
+
 										case SDL_SCANCODE_ESCAPE:
 											if (event.key.state == SDL_PRESSED)
 											{
@@ -231,25 +251,6 @@ int main(int argc, char **argv)
 												}
 											}
 
-											break;
-
-										case SDL_SCANCODE_RETURN:
-											if (event.key.state == SDL_PRESSED && alt_held)
-											{
-												static bool fullscreen = false;
-												fullscreen = !fullscreen;
-
-												Video_SetFullscreen(fullscreen);
-											}
-											else
-											{
-												retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START].raw = event.key.state == SDL_PRESSED;
-											}
-
-											break;
-
-										case SDL_SCANCODE_BACKSPACE:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].raw = event.key.state == SDL_PRESSED;
 											break;
 
 										default:
