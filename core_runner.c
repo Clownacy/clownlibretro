@@ -551,6 +551,8 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 			game_info.size = 0;
 			game_info.meta = NULL;
 
+			bool game_loaded = false;
+
 			if (!system_info.need_fullpath)
 			{
 				// If the file is a zip archive, then try extracing a useable file.
@@ -577,9 +579,14 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 									zip_fread(zip_file, game_buffer, game_info.size);
 
-									zip_fclose(zip_file);
+									game_info.data = game_buffer;
+									game_loaded = core.retro_load_game(&game_info);
 
-									break;
+									if (game_loaded)
+									{
+										zip_fclose(zip_file);
+										break;
+									}
 								}
 
 								zip_fclose(zip_file);
@@ -589,15 +596,22 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 					zip_close(zip);
 				}
-				else if (!FileToMemory(game_path, &game_buffer, &game_info.size))
+				else if (FileToMemory(game_path, &game_buffer, &game_info.size))
+				{
+					game_info.data = game_buffer;
+					game_loaded = core.retro_load_game(&game_info);
+				}
+				else
 				{
 					fprintf(stderr, "Could not open file '%s'\n", game_path);
 				}
-
-				game_info.data = game_buffer;
+			}
+			else
+			{
+				game_loaded = core.retro_load_game(&game_info);
 			}
 
-			if (!core.retro_load_game(&game_info))
+			if (!game_loaded)
 			{
 				fputs("retro_load_game failed\n", stderr);
 			}
