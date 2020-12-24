@@ -537,7 +537,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 				core.retro_unload_game();
 			}
 
-			free((void*)game_info.data);
+			free(game_buffer);
 
 			core.retro_deinit();
 		}
