@@ -7,6 +7,7 @@
 typedef struct Variable
 {
 	struct retro_core_option_definition definition;
+	size_t total_values;
 	size_t selected_value;
 } Variable;
 

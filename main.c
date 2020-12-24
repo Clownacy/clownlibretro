@@ -45,12 +45,25 @@ static int OptionsMenuCallback(Menu_Option *option, Menu_CallbackAction action, 
 			break;
 
 		case MENU_UPDATE_OK:
-			break;
-
 		case MENU_UPDATE_LEFT:
-			break;
-
 		case MENU_UPDATE_RIGHT:
+			if (action == MENU_UPDATE_LEFT)
+			{
+				if (variable->selected_value == 0)
+					variable->selected_value = variable->total_values - 1;
+				else
+					--variable->selected_value;
+			}
+			else
+			{
+				if (variable->selected_value == variable->total_values - 1)
+					variable->selected_value = 0;
+				else
+					++variable->selected_value;
+			}
+
+			option->value = variable->definition.values[variable->selected_value].value;
+
 			break;
 	}
 

@@ -163,13 +163,15 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 	{
 		for (size_t i = 0; i < total_variables; ++i)
 		{
+			variables[i].total_values = 0;
 			variables[i].selected_value = 0;
+
 			for (const struct retro_core_option_value *value = options[i].values; value->value != NULL; ++value)
 			{
 				if (!strcmp(value->value, options[i].default_value))
-					break;
+					variables[i].selected_value = variables[i].total_values;
 
-				++variables[i].selected_value;
+				++variables[i].total_values;
 			}
 
 			variables[i].definition = options[i];
