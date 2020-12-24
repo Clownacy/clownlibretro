@@ -243,13 +243,13 @@ int main(int argc, char **argv)
 											}
 											else
 											{
-												retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START].held = event.key.state == SDL_PRESSED;
+												retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START].raw = event.key.state == SDL_PRESSED;
 											}
 
 											break;
 
 										case SDL_SCANCODE_BACKSPACE:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].held = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].raw = event.key.state == SDL_PRESSED;
 											break;
 
 										default:
