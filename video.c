@@ -18,13 +18,17 @@ size_t window_height;
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 
-static bool was_init;
+static bool sdl_already_initialised;
+
+  ////////////////
+ // Main stuff //
+////////////////
 
 bool Video_Init(size_t window_width, size_t window_height)
 {
-	was_init = SDL_WasInit(SDL_INIT_VIDEO);
+	sdl_already_initialised = SDL_WasInit(SDL_INIT_VIDEO);
 
-	if (was_init || SDL_InitSubSystem(SDL_INIT_VIDEO) == 0)
+	if (sdl_already_initialised || SDL_InitSubSystem(SDL_INIT_VIDEO) == 0)
 	{
 		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE);
 
@@ -37,6 +41,9 @@ bool Video_Init(size_t window_width, size_t window_height)
 
 			SDL_DestroyWindow(window);
 		}
+
+		if (!sdl_already_initialised)
+			SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	}
 
 	return false;
@@ -47,8 +54,8 @@ void Video_Deinit(void)
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 
-	if (!was_init)
-		SDL_QuitSubSystem(SDL_INIT_AUDIO);
+	if (!sdl_already_initialised)
+		SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 void Video_Clear(void)
@@ -67,6 +74,10 @@ void Video_SetFullscreen(bool fullscreen)
 
 	SDL_ShowCursor(fullscreen ? SDL_DISABLE : SDL_ENABLE);
 }
+
+  ///////////////////
+ // Texture stuff //
+///////////////////
 
 Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format format, bool streaming)
 {
