@@ -5,13 +5,13 @@
 
 typedef struct Variable
 {
-	const char *key;
-	const char *desc;
-	const char *info;
+	char *key;
+	char *desc;
+	char *info;
 	struct
 	{
-		const char *value;
-		const char *label;
+		char *value;
+		char *label;
 	} values[128]; // See `RETRO_NUM_CORE_OPTION_VALUES_MAX`
 	size_t total_values;
 	size_t selected_value;

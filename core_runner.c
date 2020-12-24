@@ -169,20 +169,20 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 
 			for (const struct retro_core_option_value *value = options[i].values; value->value != NULL; ++value)
 			{
-				if (!strcmp(value->value, options[i].default_value))
+				if (options[i].default_value != NULL && !strcmp(value->value, options[i].default_value))
 					variables[i].selected_value = variables[i].total_values;
 
 				++variables[i].total_values;
 			}
 
-			variables[i].key = options[i].key;
-			variables[i].desc = options[i].desc;
-			variables[i].info = options[i].info;
+			variables[i].key = strdup(options[i].key);
+			variables[i].desc = strdup(options[i].desc);
+			variables[i].info = strdup(options[i].info);
 
 			for (size_t j = 0; j < variables[i].total_values; ++j)
 			{
-				variables[i].values[j].value = options[i].values[j].value;
-				variables[i].values[j].label = options[i].values[j].label;
+				variables[i].values[j].value = strdup(options[i].values[j].value);
+				variables[i].values[j].label = options[i].values[j].label == NULL ? NULL : strdup(options[i].values[j].label);
 			}
 		}
 	}
@@ -239,20 +239,69 @@ static void Callback_GetVariable(struct retro_variable *variable)
 
 static void Callback_SetVariables(const struct retro_variable *variables)
 {
-	/*if (variable_list_head == NULL)
+	// Convert the `retro_variable` array to a `retro_core_option_definition` array
+	size_t total_options = 0;
+
+	for (const struct retro_variable *variable = variables; variable->key != NULL; ++variable)
+		++total_options;
+
+	struct retro_core_option_definition *options = malloc(sizeof(struct retro_core_option_definition) * (total_options + 1));
+
+	if (options != NULL)
 	{
-		for (const struct retro_variable *variable = variables; variable->key == NULL || variable->value == NULL; ++variable)
+		for (size_t i = 0; i < total_options; ++i)
 		{
-			Variable *variable_list_entry = malloc(sizeof(Variable));
+			const char *value_pointer = strchr(variables[i].value, ';');
 
-			if (variable_list_entry != NULL)
+			options[i].key = variables[i].key;
+			options[i].desc = strndup(variables[i].value, value_pointer - variables[i].value);
+			options[i].info = "";
+			options[i].default_value = NULL;
+
+			size_t total_values = 0;
+
+			value_pointer += 2;
+
+			for (;;)
 			{
-				variable_list_entry->key = variable->key;
+				const char *value_end = strchr(value_pointer, '|');
 
-				variable_list_head
+				if (value_end == NULL)
+					break;
+
+				options[i].values[total_values].value = strndup(value_pointer, value_end - value_pointer);
+				options[i].values[total_values].label = NULL;
+
+				++total_values;
+
+				value_pointer = value_end + 1;
 			}
+
+			options[i].values[total_values].value = NULL;
+			options[i].values[total_values].label = NULL;
 		}
-	}*/
+
+		options[total_options].key = NULL;
+		options[total_options].desc = NULL;
+		options[total_options].info = NULL;
+		options[total_options].values[0].value = NULL;
+		options[total_options].values[0].label = NULL;
+		options[total_options].default_value = NULL;
+
+		// Process the `retro_core_option_definition` array
+		LoadOptions(options);
+
+		// Now get rid of it
+		for (size_t i = 0; i < total_options; ++i)
+		{
+			free((char*)options[i].desc);
+
+			for (const struct retro_core_option_value *value = options[i].values; value->value != NULL; ++value)
+				free((char*)value->value);
+		}
+
+		free(options);
+	}
 }
 
 static void Callback_SetVariableUpdate(bool *update)
@@ -715,6 +764,19 @@ void CoreRunner_Deinit(void)
 
 	free(game_path);
 	free(core_path);
+
+	for (size_t i = 0; i < total_variables; ++i)
+	{
+		free(variables[i].key);
+		free(variables[i].desc);
+		free(variables[i].info);
+
+		for (size_t j = 0; j < variables[i].total_values; ++j)
+		{
+			free(variables[i].values[j].value);
+			free(variables[i].values[j].label);
+		}
+	}
 
 	free(variables);
 }
