@@ -10,6 +10,7 @@ typedef struct Retropad
 	{
 		bool pressed;
 		bool held;
+		bool raw;
 	} buttons[16];
 } Retropad;
 
