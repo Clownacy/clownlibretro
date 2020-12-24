@@ -8,23 +8,6 @@
 #include "input.h"
 #include "video.h"
 
-struct Menu_Option
-{
-	Menu_Callback callback;
-
-	char *label;
-	char *sublabel;
-	char *value;
-	char *value_description;
-};
-
-struct Menu
-{
-	size_t selected_option;
-	size_t total_options;
-	Menu_Option options[];
-};
-
 static Font *font;
 static size_t font_width;
 static size_t font_height;

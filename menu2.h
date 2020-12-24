@@ -13,8 +13,7 @@ typedef enum Menu_CallbackAction
 	MENU_UPDATE_RIGHT
 } Menu_CallbackAction;
 
-typedef struct Menu_Option Menu_Option;
-typedef struct Menu Menu;
+struct Menu_Option;
 
 typedef int (*Menu_CallbackFunction)(struct Menu_Option *option, Menu_CallbackAction action, void *user_data);
 
@@ -23,6 +22,23 @@ typedef struct Menu_Callback
 	Menu_CallbackFunction function;
 	void *user_data;
 } Menu_Callback;
+
+typedef struct Menu_Option
+{
+	Menu_Callback callback;
+
+	const char *label;
+	const char *sublabel;
+	const char *value;
+	const char *value_description;
+} Menu_Option;
+
+typedef struct Menu
+{
+	size_t selected_option;
+	size_t total_options;
+	Menu_Option options[];
+} Menu;
 
 bool Menu_Init(void);
 void Menu_Deinit(void);

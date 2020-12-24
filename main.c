@@ -9,7 +9,7 @@
 #include "event.h"
 #include "input.h"
 //#include "menu.h"
-//#include "menu2.h"
+#include "menu2.h"
 #include "video.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -19,10 +19,43 @@ static bool audio_initialised;
 static double frames_per_second;
 
 static bool quit;
+static bool menu_open;
+
+static Menu *menu;
 
   //////////
  // Main //
 //////////
+
+static int OptionsMenuCallback(Menu_Option *option, Menu_CallbackAction action, void *user_data)
+{
+	Variable *variable = user_data;
+
+	switch (action)
+	{
+		case MENU_INIT:
+			option->label = variable->definition.desc;
+			option->value = variable->definition.values[variable->selected_value].value;
+			break;
+
+		case MENU_DEINIT:
+			break;
+
+		case MENU_UPDATE_NONE:
+			break;
+
+		case MENU_UPDATE_OK:
+			break;
+
+		case MENU_UPDATE_LEFT:
+			break;
+
+		case MENU_UPDATE_RIGHT:
+			break;
+	}
+
+	return 0; // TODO
+}
 
 int main(int argc, char **argv)
 {
@@ -55,6 +88,8 @@ int main(int argc, char **argv)
 				window_height = 480;//system_av_info.geometry.base_height;
 
 				audio_initialised = Audio_Init();
+
+				Menu_Init();
 
 				if (!CoreRunner_Init(argv[1], argv[2], &frames_per_second))
 				{
@@ -155,6 +190,34 @@ int main(int argc, char **argv)
 											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3].held = event.key.state == SDL_PRESSED;
 											break;
 
+										case SDL_SCANCODE_ESCAPE:
+											if (event.key.state == SDL_PRESSED)
+											{
+												menu_open = !menu_open;
+
+												if (menu_open)
+												{
+													Variable *variables;
+													size_t total_variables;
+													CoreRunner_GetVariables(&variables, &total_variables);
+
+													Menu_Callback callbacks[total_variables];
+													for (size_t i = 0; i < total_variables; ++i)
+													{
+														callbacks[i].function = OptionsMenuCallback;
+														callbacks[i].user_data = &variables[i];
+													}
+
+													menu = Menu_Create(callbacks, total_variables);
+												}
+												else
+												{
+													Menu_Destroy(menu);
+												}
+											}
+
+											break;
+
 										case SDL_SCANCODE_RETURN:
 											if (event.key.state == SDL_PRESSED && alt_held)
 											{
@@ -185,13 +248,23 @@ int main(int argc, char **argv)
 						for (size_t i = 0; i < sizeof(retropad.buttons) / sizeof(retropad.buttons[0]); ++i)
 							retropad.buttons[i].pressed = retropad.buttons[i].pressed != retropad.buttons[i].held && retropad.buttons[i].held;
 
-						if (!CoreRunner_Update())
-							quit = true;
+						if (menu_open)
+						{
+							Menu_Update(menu);
+						}
+						else
+						{
+							if (!CoreRunner_Update())
+								quit = true;
+						}
 
 						// Draw stuff
 						Video_Clear();
 
 						CoreRunner_Draw();
+
+						if (menu_open)
+							Menu_Draw(menu);
 
 						Video_Display();
 
@@ -207,6 +280,8 @@ int main(int argc, char **argv)
 
 					CoreRunner_Deinit();
 				}
+
+				Menu_Deinit();
 
 				if (audio_initialised)
 					Audio_Deinit();
