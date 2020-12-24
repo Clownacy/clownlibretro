@@ -69,6 +69,33 @@ static int OptionsMenuCallback(Menu_Option *option, Menu_CallbackAction action, 
 	return 0; // TODO
 }
 
+static void ToggleMenu(void)
+{
+	menu_open = !menu_open;
+
+	if (menu_open)
+	{
+		Variable *variables;
+		size_t total_variables;
+		CoreRunner_GetVariables(&variables, &total_variables);
+
+		Menu_Callback callbacks[total_variables]; // TODO: Get rid of this VLA
+		for (size_t i = 0; i < total_variables; ++i)
+		{
+			callbacks[i].function = OptionsMenuCallback;
+			callbacks[i].user_data = &variables[i];
+		}
+
+		menu = Menu_Create(callbacks, total_variables);
+	}
+	else
+	{
+		Menu_Destroy(menu);
+
+		CoreRunner_VariablesModified();
+	}
+}
+
 int main(int argc, char **argv)
 {
 	int main_return = EXIT_FAILURE;
@@ -224,31 +251,7 @@ int main(int argc, char **argv)
 
 										case SDL_SCANCODE_ESCAPE:
 											if (event.key.state == SDL_PRESSED)
-											{
-												menu_open = !menu_open;
-
-												if (menu_open)
-												{
-													Variable *variables;
-													size_t total_variables;
-													CoreRunner_GetVariables(&variables, &total_variables);
-
-													Menu_Callback callbacks[total_variables]; // TODO: Get rid of this VLA
-													for (size_t i = 0; i < total_variables; ++i)
-													{
-														callbacks[i].function = OptionsMenuCallback;
-														callbacks[i].user_data = &variables[i];
-													}
-
-													menu = Menu_Create(callbacks, total_variables);
-												}
-												else
-												{
-													Menu_Destroy(menu);
-
-													CoreRunner_VariablesModified();
-												}
-											}
+												ToggleMenu();
 
 											break;
 
@@ -280,6 +283,12 @@ int main(int argc, char **argv)
 
 										case SDL_CONTROLLER_BUTTON_BACK:
 											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_GUIDE:
+											if (event.cbutton.state == SDL_PRESSED)
+												ToggleMenu();
+
 											break;
 
 										case SDL_CONTROLLER_BUTTON_START:
