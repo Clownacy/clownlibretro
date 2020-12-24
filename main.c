@@ -17,7 +17,8 @@
 #include "font.h"
 #include "input.h"
 #include "libretro.h"
-#include "menu.h"
+//#include "menu.h"
+#include "menu2.h"
 #include "video.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -538,8 +539,8 @@ int main(int argc, char **argv)
 										if (!HandleEvents())
 											quit = true;
 
-										if (retropad.buttons[RETRO_DEVICE_ID_ANALOG_Y].pressed)
-											EnterMenu(font);
+//										if (retropad.buttons[RETRO_DEVICE_ID_ANALOG_Y].pressed)
+//											EnterMenu(font);
 
 										Input_Update();
 
