@@ -642,7 +642,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 			if (!system_info.need_fullpath)
 			{
-				// If the file is a zip archive, then try extracing a useable file.
+				// If the file is a zip archive, then try extracting a useable file.
 				// If it isn't, just assume it's a plain ROM and load it to memory.
 				zip_t *zip = zip_open(game_path, ZIP_RDONLY, NULL);
 
