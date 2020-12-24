@@ -45,3 +45,5 @@ void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitc
 bool Video_TextureLock(Video_Texture *texture, const Video_Rect *rect, unsigned char **buffer, size_t *pitch);
 void Video_TextureUnlock(Video_Texture *texture);
 void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const Video_Rect *src_rect, Video_Colour colour);
+
+void Video_ColourFill(Video_Colour colour, unsigned char);

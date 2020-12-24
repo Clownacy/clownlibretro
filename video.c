@@ -173,3 +173,14 @@ void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const
 
 	SDL_RenderCopy(renderer, texture->sdl_texture, &src_sdl_rect, &dst_sdl_rect);
 }
+
+void Video_ColourFill(Video_Colour colour, unsigned char alpha)
+{
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawColor(renderer, colour.red, colour.green, colour.blue, alpha);
+
+	SDL_RenderFillRect(renderer, NULL);
+
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xFF);
+}

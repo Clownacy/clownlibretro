@@ -282,7 +282,10 @@ int main(int argc, char **argv)
 						CoreRunner_Draw();
 
 						if (menu_open)
+						{
+							Video_ColourFill((Video_Colour){0, 0, 0}, 0x80);
 							Menu_Draw(menu);
+						}
 
 						Video_Display();
 
