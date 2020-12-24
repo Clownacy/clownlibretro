@@ -1,6 +1,10 @@
 Here's my stupid little libretro frontend.
 
-It doesn't support input, it doesn't fully implement the libretro
-specification, it's unfinished, it's not intended for general use.
+Its input layout is hardcoded, it doesn't fully implement the libretro
+specification, it's unfinished, it's not intended for general use, and
+I'm pretty sure it's limited to Linux/POSIX/Unix-like platforms.
 
 Don't use this.
+
+As for a licence - hell if I know.
+I guess it's public-domain or MIT-0, choose whichever you like.
