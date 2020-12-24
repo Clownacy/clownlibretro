@@ -6,9 +6,7 @@
 
 #include "audio.h"
 #include "core_runner.h"
-#include "event.h"
 #include "input.h"
-//#include "menu.h"
 #include "menu2.h"
 #include "video.h"
 

@@ -14,12 +14,9 @@
 #include "SDL.h"
 
 #include "audio.h"
-#include "event.h"
 #include "file.h"
 #include "input.h"
 #include "libretro.h"
-//#include "menu.h"
-#include "menu2.h"
 #include "video.h"
 
 typedef struct Core
