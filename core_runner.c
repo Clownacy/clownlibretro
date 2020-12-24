@@ -56,6 +56,7 @@ typedef struct Core
 static bool quit;
 
 static bool alternate_layout;
+static bool pixel_perfect;
 
 static double *frames_per_second;
 
@@ -820,14 +821,32 @@ bool CoreRunner_Update(void)
 
 void CoreRunner_Draw(void)
 {
-	// Draw stuff
-	size_t upscale_factor = MAX(1, MIN(window_width / core_framebuffer_display_width, window_height / core_framebuffer_display_height));
+	size_t dst_width;
+	size_t dst_height;
 
-	size_t dst_width = core_framebuffer_display_width * upscale_factor;
-	size_t dst_height = core_framebuffer_display_height * upscale_factor;
+	if (pixel_perfect)
+	{
+		size_t upscale_factor = MAX(1, MIN(window_width / core_framebuffer_display_width, window_height / core_framebuffer_display_height));
 
-	Video_Rect src_rect = {0, 0, core_framebuffer_display_width, core_framebuffer_display_height};
-	Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
+		dst_width = core_framebuffer_display_width * upscale_factor;
+		dst_height = core_framebuffer_display_height * upscale_factor;
+	}
+	else
+	{
+		if ((float)window_width / (float)window_height < core_framebuffer_display_aspect_ratio)
+		{
+			dst_width = window_width;
+			dst_height = window_width / core_framebuffer_display_aspect_ratio;
+		}
+		else
+		{
+			dst_width = window_height * core_framebuffer_display_aspect_ratio;
+			dst_height = window_height;
+		}
+	}
+
+	const Video_Rect src_rect = {0, 0, core_framebuffer_display_width, core_framebuffer_display_height};
+	const Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
 
 	Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, (Video_Colour){0xFF, 0xFF, 0xFF});
 }
@@ -846,4 +865,9 @@ void CoreRunner_VariablesModified(void)
 void CoreRunner_SetAlternateButtonLayout(bool enable)
 {
 	alternate_layout = enable;
+}
+
+void CoreRunner_SetPixelPerfect(bool enable)
+{
+	pixel_perfect = enable;
 }

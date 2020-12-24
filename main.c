@@ -184,6 +184,17 @@ int main(int argc, char **argv)
 											}
 
 											break;
+
+										case SDLK_F2:
+											if (event.key.state == SDL_PRESSED)
+											{
+												static bool pixel_perfect;
+
+												pixel_perfect = !pixel_perfect;
+												CoreRunner_SetPixelPerfect(pixel_perfect);
+											}
+
+											break;
 									}
 
 
