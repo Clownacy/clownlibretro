@@ -266,15 +266,22 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 			{
 				const char *value_end = strchr(value_pointer, '|');
 
-				if (value_end == NULL)
-					break;
+				size_t value_length;
 
-				options[i].values[total_values].value = strndup(value_pointer, value_end - value_pointer);
+				if (value_end == NULL)
+					value_length = strlen(value_pointer);
+				else
+					value_length = value_end - value_pointer;
+
+				options[i].values[total_values].value = strndup(value_pointer, value_length);
 				options[i].values[total_values].label = NULL;
 
 				++total_values;
 
-				value_pointer = value_end + 1;
+				if (value_pointer[value_length] == '\0')
+					break;
+
+				value_pointer += value_length + 1;
 			}
 
 			options[i].values[total_values].value = NULL;
