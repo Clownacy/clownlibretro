@@ -4,6 +4,7 @@
 
 #include "SDL.h"
 
+#include "audio.h"
 #include "core_runner.h"
 #include "event.h"
 #include "input.h"
@@ -12,6 +13,8 @@
 #include "video.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+static bool audio_initialised;
 
 static double frames_per_second;
 
@@ -50,6 +53,8 @@ int main(int argc, char **argv)
 			{
 				window_width = 640;//system_av_info.geometry.base_width;
 				window_height = 480;//system_av_info.geometry.base_height;
+
+				audio_initialised = Audio_Init();
 
 				if (!CoreRunner_Init(argv[1], argv[2], &frames_per_second))
 				{
@@ -202,6 +207,9 @@ int main(int argc, char **argv)
 
 					CoreRunner_Deinit();
 				}
+
+				if (audio_initialised)
+					Audio_Deinit();
 
 				Video_Deinit();
 			}

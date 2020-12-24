@@ -74,7 +74,6 @@ static float core_framebuffer_display_aspect_ratio;
 static Video_Format core_framebuffer_format;
 static size_t size_of_framebuffer_pixel;
 
-static bool audio_initialised;
 static Audio_Stream *audio_stream;
 
   ////////////////
@@ -514,7 +513,6 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 					core_framebuffer_display_height = system_av_info.geometry.base_height;
 					core_framebuffer_display_aspect_ratio = system_av_info.geometry.aspect_ratio;
 
-					audio_initialised = Audio_Init();
 					audio_stream = Audio_StreamCreate(system_av_info.timing.sample_rate);
 
 					// Read save data from file
@@ -570,9 +568,6 @@ void CoreRunner_Deinit(void)
 
 	if (audio_stream != NULL)
 		Audio_StreamDestroy(audio_stream);
-
-	if (audio_initialised)
-		Audio_Deinit();
 
 	Video_TextureDestroy(core_framebuffer);
 
