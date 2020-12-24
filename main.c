@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 	else
 	{
 		// Initialise SDL2 video and audio
-		if (SDL_Init(SDL_INIT_EVENTS) < 0)
+		if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) < 0)
 		{
 			fprintf(stderr, "SDL_Init failed - Error: '%s'\n", SDL_GetError());
 		}
@@ -256,6 +256,73 @@ int main(int argc, char **argv)
 											break;
 									}
 
+									break;
+
+								case SDL_CONTROLLERBUTTONDOWN:
+								case SDL_CONTROLLERBUTTONUP:
+									switch (event.cbutton.button)
+									{
+										case SDL_CONTROLLER_BUTTON_A:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_B:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_X:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_Y:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_BACK:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_START:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_DPAD_UP:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+
+										case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT].raw = event.cbutton.state == SDL_PRESSED;
+											break;
+									}
+
+									break;
+
+								case SDL_CONTROLLERDEVICEADDED:
+									SDL_GameControllerOpen(event.cdevice.which);
 									break;
 							}
 						}
