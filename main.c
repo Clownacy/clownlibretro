@@ -226,6 +226,8 @@ int main(int argc, char **argv)
 												else
 												{
 													Menu_Destroy(menu);
+
+													CoreRunner_VariablesModified();
 												}
 											}
 

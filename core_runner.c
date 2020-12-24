@@ -66,6 +66,7 @@ static char *save_file_path;
 static Core core;
 static Variable *variables;
 static size_t total_variables;
+static bool variables_modified;
 
 static unsigned char *game_buffer;
 
@@ -248,7 +249,8 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 
 static void Callback_SetVariableUpdate(bool *update)
 {
-	*update = false; // TODO
+	*update = variables_modified;
+	variables_modified = false;
 }
 
 static void Callback_GetLibretroPath(const char **path)
@@ -730,3 +732,7 @@ void CoreRunner_GetVariables(Variable **variables_pointer, size_t *total_variabl
 	*total_variables_pointer = total_variables;
 }
 
+void CoreRunner_VariablesModified(void)
+{
+	variables_modified = true;
+}
