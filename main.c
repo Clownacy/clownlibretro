@@ -7,7 +7,7 @@
 #include "audio.h"
 #include "core_runner.h"
 #include "input.h"
-#include "menu2.h"
+#include "menu.h"
 #include "video.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
