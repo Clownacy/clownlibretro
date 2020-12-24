@@ -94,7 +94,7 @@ void Menu_Update(Menu *menu)
 
 		if (menu->selected_option == i)
 		{
-			if (retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A].pressed)
+			if (retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B].pressed)
 				action = MENU_UPDATE_OK;
 			else if (retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT].pressed)
 				action = MENU_UPDATE_LEFT;
