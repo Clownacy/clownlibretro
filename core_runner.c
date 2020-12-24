@@ -75,6 +75,7 @@ static Video_Format core_framebuffer_format;
 static size_t size_of_framebuffer_pixel;
 
 static bool audio_initialised;
+static Audio_Stream *audio_stream;
 
   ////////////////
  // Core stuff //
@@ -253,13 +254,10 @@ static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_a
 	Video_TextureDestroy(core_framebuffer);
 	Video_TextureCreate(system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, true);
 
-	if (audio_initialised)
-	{
-		Audio_Deinit();
-		audio_initialised = false;
-	}
+	if (audio_stream != NULL)
+		Audio_StreamDestroy(audio_stream);
 
-	audio_initialised = Audio_Init(system_av_info->timing.sample_rate);
+	audio_stream = Audio_StreamCreate(system_av_info->timing.sample_rate);
 }
 
 static void Callback_SetGeometry(const struct retro_game_geometry *geometry)
@@ -353,19 +351,19 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 
 static size_t Callback_AudioSampleBatch(const int16_t *data, size_t frames)
 {
-	if (audio_initialised)
-		return Audio_PushFrames(data, frames);
+	if (audio_stream != NULL)
+		return Audio_StreamPushFrames(audio_stream, data, frames);
 	else
 		return frames;
 }
 
 static void Callback_AudioSample(int16_t left, int16_t right)
 {
-	if (audio_initialised)
+	if (audio_stream != NULL)
 	{
 		const int16_t buffer[2] = {left, right};
 
-		Audio_PushFrames(buffer, 1);
+		Audio_StreamPushFrames(audio_stream, buffer, 1);
 	}
 }
 
@@ -516,7 +514,8 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 					core_framebuffer_display_height = system_av_info.geometry.base_height;
 					core_framebuffer_display_aspect_ratio = system_av_info.geometry.aspect_ratio;
 
-					audio_initialised = Audio_Init(system_av_info.timing.sample_rate);
+					audio_initialised = Audio_Init();
+					audio_stream = Audio_StreamCreate(system_av_info.timing.sample_rate);
 
 					// Read save data from file
 					unsigned char *save_file_buffer;
@@ -569,11 +568,11 @@ void CoreRunner_Deinit(void)
 			fputs("Save file could not be written\n", stderr);
 	}
 
+	if (audio_stream != NULL)
+		Audio_StreamDestroy(audio_stream);
+
 	if (audio_initialised)
-	{
 		Audio_Deinit();
-		audio_initialised = false;
-	}
 
 	Video_TextureDestroy(core_framebuffer);
 
