@@ -330,6 +330,20 @@ int main(int argc, char **argv)
 
 									break;
 
+								case SDL_CONTROLLERAXISMOTION:
+									switch (event.caxis.axis)
+									{
+										case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2].raw = event.caxis.value >= 32767 / 4;
+											break;
+
+										case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2].raw = event.caxis.value >= 32767 / 4;
+											break;
+									}
+
+									break;
+
 								case SDL_CONTROLLERDEVICEADDED:
 									SDL_GameControllerOpen(event.cdevice.which);
 									break;
