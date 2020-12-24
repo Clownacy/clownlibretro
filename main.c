@@ -14,7 +14,6 @@
 #include "audio.h"
 #include "event.h"
 #include "file.h"
-#include "font.h"
 #include "input.h"
 #include "libretro.h"
 //#include "menu.h"
@@ -509,94 +508,81 @@ int main(int argc, char **argv)
 
 								audio_initialised = Audio_Init(system_av_info.timing.sample_rate);
 
-								Font *font = LoadFreeTypeFont("font", 10, 20, true);
+								main_return = EXIT_SUCCESS;
 
-								if (font != NULL)
+								// Read save data from file
+								unsigned char *save_file_buffer;
+								size_t save_file_size;
+								if (FileToMemory(save_file_path, &save_file_buffer, &save_file_size))
 								{
-									main_return = EXIT_SUCCESS;
+									memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
 
-									// Read save data from file
-									unsigned char *save_file_buffer;
-									size_t save_file_size;
-									if (FileToMemory(save_file_path, &save_file_buffer, &save_file_size))
-									{
-										memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
+									free(save_file_buffer);
 
-										free(save_file_buffer);
+									fputs("Save file read\n", stderr);
+								}
+								else
+								{
+									fputs("Save file could not be read\n", stderr);
+								}
 
-										fputs("Save file read\n", stderr);
-									}
-									else
-									{
-										fputs("Save file could not be read\n", stderr);
-									}
+								// Begin the mainloop
+								quit = false;
 
-									// Begin the mainloop
-									quit = false;
-
-									while (!quit)
-									{
-										if (!HandleEvents())
-											quit = true;
+								while (!quit)
+								{
+									if (!HandleEvents())
+										quit = true;
 
 //										if (retropad.buttons[RETRO_DEVICE_ID_ANALOG_Y].pressed)
 //											EnterMenu(font);
 
-										Input_Update();
+									Input_Update();
 
-										// Update the core
-										core.retro_run();
+									// Update the core
+									core.retro_run();
 
-										// Draw stuff
-										Video_Clear();
+									// Draw stuff
+									Video_Clear();
 
-										size_t dst_width;
-										size_t dst_height;
+									size_t dst_width;
+									size_t dst_height;
 
-										if ((float)window_width / (float)window_height < core_framebuffer_display_aspect_ratio)
-										{
-											dst_width = window_width;
-											dst_height = window_width / core_framebuffer_display_aspect_ratio;
-										}
-										else
-										{
-											dst_width = window_height * core_framebuffer_display_aspect_ratio;
-											dst_height = window_height;
-										}
-
-										Video_Rect src_rect = {0, 0, core_framebuffer_display_width, core_framebuffer_display_height};
-										Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
-
-										Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, (Video_Colour){0xFF, 0xFF, 0xFF});
-
-										DrawText(font, NULL, 0, 0, (Video_Colour){0xFF, 0xFF, 0xFF}, "test");
-
-										Video_Display();
-
-										// Delay until the next frame
-										static double ticks_next;
-										const Uint32 ticks_now = SDL_GetTicks();
-
-										if (ticks_now < ticks_next)
-											SDL_Delay(ticks_next - ticks_now);
-
-										ticks_next = MAX(ticks_next, ticks_now) + 1000.0 / frames_per_second;
-									}
-
-									if (core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) != 0)
+									if ((float)window_width / (float)window_height < core_framebuffer_display_aspect_ratio)
 									{
-										// Write save data to file
-										if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
-											fputs("Save file written\n", stderr);
-										else
-											fputs("Save file could not be written\n", stderr);
+										dst_width = window_width;
+										dst_height = window_width / core_framebuffer_display_aspect_ratio;
+									}
+									else
+									{
+										dst_width = window_height * core_framebuffer_display_aspect_ratio;
+										dst_height = window_height;
 									}
 
-									UnloadFont(font);
+									Video_Rect src_rect = {0, 0, core_framebuffer_display_width, core_framebuffer_display_height};
+									Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
+
+									Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, (Video_Colour){0xFF, 0xFF, 0xFF});
+
+									Video_Display();
+
+									// Delay until the next frame
+									static double ticks_next;
+									const Uint32 ticks_now = SDL_GetTicks();
+
+									if (ticks_now < ticks_next)
+										SDL_Delay(ticks_next - ticks_now);
+
+									ticks_next = MAX(ticks_next, ticks_now) + 1000.0 / frames_per_second;
 								}
-								else
+
+								if (core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) != 0)
 								{
-									fputs("Failed to load font\n", stderr);
+									// Write save data to file
+									if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
+										fputs("Save file written\n", stderr);
+									else
+										fputs("Save file could not be written\n", stderr);
 								}
 
 								// Begin teardown

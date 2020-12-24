@@ -58,9 +58,6 @@ struct Font
 	Video_Texture *atlas;
 };
 
-size_t font_width;
-size_t font_height;
-
 static unsigned long UTF8ToUTF32(const unsigned char *string, size_t *bytes_read)
 {
 	// TODO - check for well-formedness
@@ -365,9 +362,6 @@ Font* LoadFreeTypeFontFromData(const unsigned char *data, size_t data_size, size
 
 Font* LoadFreeTypeFont(const char *font_filename, size_t cell_width, size_t cell_height, bool antialiasing)
 {
-	font_width = cell_width;
-	font_height = cell_height;
-
 	Font *font = NULL;
 
 	size_t file_size;
@@ -472,6 +466,7 @@ Font* LoadBitmapFont(const char *bitmap_path, const char *metadata_path)
 
 void DrawText(Font *font, Video_Texture *surface, int x, int y, Video_Colour colour, const char *string)
 {
+	(void)surface;	// Shut up that damn warning
 //	if (font != NULL && surface != NULL)
 	if (font != NULL)
 	{

@@ -15,7 +15,7 @@ typedef enum Menu_CallbackAction
 
 struct Menu_Option;
 
-typedef int (*Menu_Callback)(Menu_Option *option, Menu_CallbackAction action);
+typedef int (*Menu_Callback)(struct Menu_Option *option, Menu_CallbackAction action);
 
 typedef struct Menu_Option
 {

@@ -16,10 +16,10 @@ static void DrawTextCentered(const char *text, size_t x, size_t y)
 {
 	// TODO - Don't assume monospace. Will require modifications to `font.c`.
 
-	size_t text_width = font_width * strlen(text);
-	size_t text_height = font_height;
+	const size_t text_width = font_width * strlen(text);
+	const size_t text_height = font_height;
 
-	DrawText(font, NULL, x, y, (Video_Colour){0xFF, 0xFF, 0xFF}, text);
+	DrawText(font, NULL, x - text_width / 2, y - text_height / 2, (Video_Colour){0xFF, 0xFF, 0xFF}, text);
 }
 
 bool Menu_Init(void)
@@ -49,7 +49,7 @@ Menu* Menu_Create(Menu_Callback *callbacks, size_t total_callbacks)
 		{
 			menu->options[i].callback = callbacks[i];
 
-			callbacks(&menu->options[i], MENU_INIT);
+			callbacks[i](&menu->options[i], MENU_INIT);
 		}
 	}
 
@@ -66,14 +66,14 @@ void Menu_Destroy(Menu *menu)
 
 void Menu_Update(Menu *menu)
 {
-	if ((retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP].pressed)
+	if (retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP].pressed)
 	{
 		if (menu->selected_option == 0)
 			menu->selected_option = menu->total_options - 1;
 		else
 			--menu->selected_option;
 	}
-	else if ((retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN].pressed)
+	else if (retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN].pressed)
 	{
 		if (menu->selected_option == menu->total_options - 1)
 			menu->selected_option = 0;
@@ -101,5 +101,5 @@ void Menu_Update(Menu *menu)
 
 void Menu_Draw(Menu *menu)
 {
-	DrawTextCentered(menu->options[menu->selected_option]->label, window_width / 2, window_height / 2);
+	DrawTextCentered(menu->options[menu->selected_option].label, window_width / 2, window_height / 2);
 }
