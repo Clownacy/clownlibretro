@@ -1,4 +1,7 @@
 Maybe base a save's filename on a hash of its ROM?
 Controller support
 Input rebinding
-Options menu
+Flesh options menu out
+- Sublabels, descriptions
+- Submenus
+-- Reset core, exit, etc.
