@@ -64,8 +64,119 @@ int main(int argc, char **argv)
 
 					while (!quit)
 					{
-						if (!HandleEvents())
-							quit = true;
+						// Handle events
+						SDL_Event event;
+						while (SDL_PollEvent(&event))
+						{
+							static bool alt_held;
+
+							if (event.key.keysym.sym == SDLK_LALT)
+								alt_held = event.key.state == SDL_PRESSED;
+
+							switch (event.type)
+							{
+								case SDL_QUIT:
+									quit = true;
+									break;
+
+								case SDL_WINDOWEVENT:
+									switch (event.window.event)
+									{
+										case SDL_WINDOWEVENT_SIZE_CHANGED:
+											window_width = event.window.data1;
+											window_height = event.window.data2;
+											break;
+									}
+
+									break;
+
+								case SDL_KEYDOWN:
+								case SDL_KEYUP:
+									switch (event.key.keysym.scancode)
+									{
+										case SDL_SCANCODE_W:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_A:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_S:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_D:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_P:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_O:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_0:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_9:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_8:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_7:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_L:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_MINUS:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_EQUALS:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_SEMICOLON:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3].held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDL_SCANCODE_RETURN:
+											if (event.key.state == SDL_PRESSED && alt_held)
+											{
+												static bool fullscreen = false;
+												fullscreen = !fullscreen;
+
+												Video_SetFullscreen(fullscreen);
+											}
+											else
+											{
+												retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START].held = event.key.state == SDL_PRESSED;
+											}
+
+											break;
+
+										case SDL_SCANCODE_BACKSPACE:
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].held = event.key.state == SDL_PRESSED;
+											break;
+
+										default:
+											break;
+									}
+
+									break;
+							}
+						}
+
 
 						Input_Update();
 
