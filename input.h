@@ -14,5 +14,3 @@ typedef struct Retropad
 } Retropad;
 
 extern Retropad retropad;
-
-void Input_Update(void);

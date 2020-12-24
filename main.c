@@ -177,8 +177,8 @@ int main(int argc, char **argv)
 							}
 						}
 
-
-						Input_Update();
+						for (size_t i = 0; i < sizeof(retropad.buttons) / sizeof(retropad.buttons[0]); ++i)
+							retropad.buttons[i].pressed = retropad.buttons[i].pressed != retropad.buttons[i].held && retropad.buttons[i].held;
 
 						if (!CoreRunner_Update())
 							quit = true;
