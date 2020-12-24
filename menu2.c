@@ -12,21 +12,27 @@ static Font *font;
 static size_t font_width;
 static size_t font_height;
 
-static void DrawTextCentered(const char *text, size_t x, size_t y)
+static void DrawTextCentered(const char *text, size_t x, size_t y, Video_Colour colour)
 {
 	// TODO - Don't assume monospace. Will require modifications to `font.c`.
 
 	const size_t text_width = font_width * strlen(text);
 	const size_t text_height = font_height;
 
-	DrawText(font, NULL, x - text_width / 2 + 2, y - text_height / 2 + 2, (Video_Colour){0x00, 0x00, 0x00}, text);
-	DrawText(font, NULL, x - text_width / 2, y - text_height / 2, (Video_Colour){0xFF, 0xFF, 0xFF}, text);
+	DrawText(font, NULL, x - text_width / 2 + 2, y - text_height / 2 + 2, (Video_Colour){0, 0, 0}, text);
+	DrawText(font, NULL, x - text_width / 2, y - text_height / 2, colour, text);
+}
+
+static void DrawOption(Menu *menu, size_t option, size_t x, size_t y, Video_Colour colour)
+{
+	DrawTextCentered(menu->options[option].label, x, y - 10, colour);
+	DrawTextCentered(menu->options[option].value, x, y + 10, colour);
 }
 
 bool Menu_Init(void)
 {
-	font_width = 15;
-	font_height = 30;
+	font_width = 10;
+	font_height = 20;
 	font = LoadFreeTypeFont("font", font_width, font_height, true);
 
 	return font != NULL;
@@ -102,6 +108,11 @@ void Menu_Update(Menu *menu)
 
 void Menu_Draw(Menu *menu)
 {
-	DrawTextCentered(menu->options[menu->selected_option].label, window_width / 2, window_height / 2 - 20);
-	DrawTextCentered(menu->options[menu->selected_option].value, window_width / 2, window_height / 2 + 20);
+	if (menu->selected_option != 0)
+		DrawOption(menu, menu->selected_option - 1, window_width / 2, window_height / 2 - 80, (Video_Colour){0xFF, 0xFF, 0xFF});
+
+	DrawOption(menu, menu->selected_option, window_width / 2, window_height / 2, (Video_Colour){0xFF, 0xFF, 0x80});
+
+	if (menu->selected_option != menu->total_options - 1)
+		DrawOption(menu, menu->selected_option + 1, window_width / 2, window_height / 2 + 80, (Video_Colour){0xFF, 0xFF, 0xFF});
 }
