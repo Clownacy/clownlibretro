@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 	else
 	{
 		// Initialise SDL2 video and audio
-		if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO) < 0)
+		if (SDL_Init(SDL_INIT_EVENTS) < 0)
 		{
 			fprintf(stderr, "SDL_Init failed - Error: '%s'\n", SDL_GetError());
 		}

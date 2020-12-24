@@ -18,18 +18,25 @@ size_t window_height;
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 
+static bool was_init;
+
 bool Video_Init(size_t window_width, size_t window_height)
 {
-	window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE);
+	was_init = SDL_WasInit(SDL_INIT_VIDEO);
 
-	if (window != NULL)
+	if (was_init || SDL_InitSubSystem(SDL_INIT_VIDEO) == 0)
 	{
-		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE);
 
-		if (renderer != NULL)
-			return true;
+		if (window != NULL)
+		{
+			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-		SDL_DestroyWindow(window);
+			if (renderer != NULL)
+				return true;
+
+			SDL_DestroyWindow(window);
+		}
 	}
 
 	return false;
@@ -39,6 +46,9 @@ void Video_Deinit(void)
 {
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
+
+	if (!was_init)
+		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
 void Video_Clear(void)
