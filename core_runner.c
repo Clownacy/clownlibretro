@@ -384,7 +384,7 @@ static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_a
 	core_framebuffer_display_aspect_ratio = system_av_info->geometry.aspect_ratio <= 0.0f ? (float)system_av_info->geometry.base_width / (float)system_av_info->geometry.base_height : system_av_info->geometry.aspect_ratio;
 
 	Video_TextureDestroy(core_framebuffer);
-	Video_TextureCreate(system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, true);
+	core_framebuffer = Video_TextureCreate(system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, true);
 
 	if (audio_stream != NULL)
 		Audio_StreamDestroy(audio_stream);
