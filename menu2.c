@@ -101,5 +101,6 @@ void Menu_Update(Menu *menu)
 
 void Menu_Draw(Menu *menu)
 {
-	DrawTextCentered(menu->options[menu->selected_option].label, window_width / 2, window_height / 2);
+	DrawTextCentered(menu->options[menu->selected_option].label, window_width / 2, window_height / 2 - 20);
+	DrawTextCentered(menu->options[menu->selected_option].value, window_width / 2, window_height / 2 + 20);
 }
