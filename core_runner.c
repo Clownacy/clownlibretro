@@ -231,10 +231,8 @@ static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
 static void Callback_GetVariable(struct retro_variable *variable)
 {
 	for (size_t i = 0; i < total_variables; ++i)
-	{
 		if (!strcmp(variables[i].key, variable->key))
 			variable->value = variables[i].values[variables[i].selected_value].value;
-	}
 }
 
 static void Callback_SetVariables(const struct retro_variable *variables)

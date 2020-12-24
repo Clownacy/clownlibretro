@@ -33,6 +33,7 @@ static int OptionsMenuCallback(Menu_Option *option, Menu_CallbackAction action, 
 	{
 		case MENU_INIT:
 			option->label = variable->desc;
+			option->sublabel = variable->info;
 			option->value = variable->values[variable->selected_value].value;
 			break;
 
