@@ -23,3 +23,4 @@ bool CoreRunner_Update(void);
 void CoreRunner_Draw(void);
 void CoreRunner_GetVariables(Variable **variables_pointer, size_t *total_variables_pointer);
 void CoreRunner_VariablesModified(void);
+void CoreRunner_SetAlternateButtonLayout(bool enable);

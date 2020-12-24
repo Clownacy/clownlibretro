@@ -149,9 +149,6 @@ int main(int argc, char **argv)
 						{
 							static bool alt_held;
 
-							if (event.key.keysym.sym == SDLK_LALT)
-								alt_held = event.key.state == SDL_PRESSED;
-
 							switch (event.type)
 							{
 								case SDL_QUIT:
@@ -171,6 +168,25 @@ int main(int argc, char **argv)
 
 								case SDL_KEYDOWN:
 								case SDL_KEYUP:
+									switch (event.key.keysym.sym)
+									{
+										case SDLK_LALT:
+											alt_held = event.key.state == SDL_PRESSED;
+											break;
+
+										case SDLK_F1:
+											if (event.key.state == SDL_PRESSED)
+											{
+												static bool alternate_layout;
+
+												alternate_layout = !alternate_layout;
+												CoreRunner_SetAlternateButtonLayout(alternate_layout);
+											}
+
+											break;
+									}
+
+
 									switch (event.key.keysym.scancode)
 									{
 										case SDL_SCANCODE_W:

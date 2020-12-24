@@ -55,6 +55,8 @@ typedef struct Core
 
 static bool quit;
 
+static bool alternate_layout;
+
 static double *frames_per_second;
 
 static char *core_path;
@@ -545,6 +547,28 @@ static int16_t Callback_InputState(unsigned int port, unsigned int device, unsig
 {
 	(void)index;
 
+	if (alternate_layout)
+	{
+		switch (id)
+		{
+			case RETRO_DEVICE_ID_JOYPAD_A:
+				id = RETRO_DEVICE_ID_JOYPAD_B;
+				break;
+
+			case RETRO_DEVICE_ID_JOYPAD_B:
+				id = RETRO_DEVICE_ID_JOYPAD_Y;
+				break;
+
+			case RETRO_DEVICE_ID_JOYPAD_Y:
+				id = RETRO_DEVICE_ID_JOYPAD_X;
+				break;
+
+			case RETRO_DEVICE_ID_JOYPAD_X:
+				id = RETRO_DEVICE_ID_JOYPAD_A;
+				break;
+		}
+	}
+
 	if (port == 0 && device == RETRO_DEVICE_JOYPAD)
 		return retropad.buttons[id].held;
 
@@ -817,4 +841,9 @@ void CoreRunner_GetVariables(Variable **variables_pointer, size_t *total_variabl
 void CoreRunner_VariablesModified(void)
 {
 	variables_modified = true;
+}
+
+void CoreRunner_SetAlternateButtonLayout(bool enable)
+{
+	alternate_layout = enable;
 }
