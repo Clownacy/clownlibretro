@@ -19,13 +19,14 @@ static void DrawTextCentered(const char *text, size_t x, size_t y)
 	const size_t text_width = font_width * strlen(text);
 	const size_t text_height = font_height;
 
+	DrawText(font, NULL, x - text_width / 2 + 2, y - text_height / 2 + 2, (Video_Colour){0x00, 0x00, 0x00}, text);
 	DrawText(font, NULL, x - text_width / 2, y - text_height / 2, (Video_Colour){0xFF, 0xFF, 0xFF}, text);
 }
 
 bool Menu_Init(void)
 {
-	font_width = 10;
-	font_height = 20;
+	font_width = 15;
+	font_height = 30;
 	font = LoadFreeTypeFont("font", font_width, font_height, true);
 
 	return font != NULL;
