@@ -76,11 +76,14 @@ static unsigned char *game_buffer;
 static Video_Texture *core_framebuffer;
 static size_t core_framebuffer_display_width;
 static size_t core_framebuffer_display_height;
+static size_t core_framebuffer_max_width;
+static size_t core_framebuffer_max_height;
 static float core_framebuffer_display_aspect_ratio;
 static Video_Format core_framebuffer_format;
 static size_t size_of_framebuffer_pixel;
 
 static Audio_Stream *audio_stream;
+static unsigned long audio_stream_sample_rate;
 
   ////////////////
  // Core stuff //
@@ -384,13 +387,24 @@ static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_a
 	core_framebuffer_display_height = system_av_info->geometry.base_height;
 	core_framebuffer_display_aspect_ratio = system_av_info->geometry.aspect_ratio <= 0.0f ? (float)system_av_info->geometry.base_width / (float)system_av_info->geometry.base_height : system_av_info->geometry.aspect_ratio;
 
-	Video_TextureDestroy(core_framebuffer);
-	core_framebuffer = Video_TextureCreate(system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, true);
+	if (core_framebuffer_max_width != system_av_info->geometry.max_width || core_framebuffer_max_height != system_av_info->geometry.max_height)
+	{
+		Video_TextureDestroy(core_framebuffer);
+		core_framebuffer = Video_TextureCreate(system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, true);
 
-	if (audio_stream != NULL)
-		Audio_StreamDestroy(audio_stream);
+		core_framebuffer_max_width = system_av_info->geometry.max_width;
+		core_framebuffer_max_height = system_av_info->geometry.max_height;
+	}
 
-	audio_stream = Audio_StreamCreate(system_av_info->timing.sample_rate);
+	if (audio_stream_sample_rate != system_av_info->timing.sample_rate)
+	{
+		if (audio_stream != NULL)
+			Audio_StreamDestroy(audio_stream);
+
+		audio_stream = Audio_StreamCreate(system_av_info->timing.sample_rate);
+
+		audio_stream_sample_rate = system_av_info->timing.sample_rate;
+	}
 }
 
 static void Callback_SetGeometry(const struct retro_game_geometry *geometry)
@@ -720,9 +734,12 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 				{
 					core_framebuffer_display_width = system_av_info.geometry.base_width;
 					core_framebuffer_display_height = system_av_info.geometry.base_height;
+					core_framebuffer_max_width = system_av_info.geometry.max_width;
+					core_framebuffer_max_height = system_av_info.geometry.max_height;
 					core_framebuffer_display_aspect_ratio = system_av_info.geometry.aspect_ratio <= 0.0f ? (float)system_av_info.geometry.base_width / (float)system_av_info.geometry.base_height : system_av_info.geometry.aspect_ratio;
 
 					audio_stream = Audio_StreamCreate(system_av_info.timing.sample_rate);
+					audio_stream_sample_rate = system_av_info.timing.sample_rate;
 
 					// Read save data from file
 					unsigned char *save_file_buffer;
