@@ -1,7 +1,7 @@
 Maybe base a save's filename on a hash of its ROM?
-Controller support
 Input rebinding
 Flesh options menu out
 - Sublabels, descriptions
 - Submenus
 -- Reset core, exit, etc.
+Split options code to its own file
