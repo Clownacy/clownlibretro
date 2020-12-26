@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <dlfcn.h>
 #include <libgen.h>
 #include <zip.h>
 
@@ -93,7 +92,7 @@ static bool LoadCore(Core *core, const char *filename)
 {
 	bool success = true;
 
-	core->handle = dlopen(filename, RTLD_LAZY);
+	core->handle = SDL_LoadObject(filename);
 
 	if (core->handle != NULL)
 	{
@@ -131,7 +130,7 @@ static bool LoadCore(Core *core, const char *filename)
 
 		for (size_t i = 0; i < sizeof(imports) / sizeof(imports[0]); ++i)
 		{
-			*imports[i].variable = dlsym(core->handle, imports[i].import_name);
+			*imports[i].variable = SDL_LoadFunction(core->handle, imports[i].import_name);
 
 			if (*imports[i].variable == NULL)
 			{
@@ -150,7 +149,7 @@ static bool LoadCore(Core *core, const char *filename)
 
 static void UnloadCore(Core *core)
 {
-	dlclose(core->handle);
+	SDL_UnloadObject(core->handle);
 }
 
   ///////////////////
