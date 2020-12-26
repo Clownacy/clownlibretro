@@ -47,3 +47,4 @@ void Video_TextureUnlock(Video_Texture *texture);
 void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const Video_Rect *src_rect, Video_Colour colour);
 
 void Video_ColourFill(const Video_Rect *rect, Video_Colour colour, unsigned char);
+void Video_DrawLine(size_t x1, size_t y1, size_t x2, size_t y2);

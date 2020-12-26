@@ -188,10 +188,12 @@ int main(int argc, char **argv)
 										case SDLK_F2:
 											if (event.key.state == SDL_PRESSED)
 											{
-												static bool pixel_perfect;
+												static CoreRunnerScreenType screen_type;
 
-												pixel_perfect = !pixel_perfect;
-												CoreRunner_SetPixelPerfect(pixel_perfect);
+												const CoreRunnerScreenType next[] = {CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT, CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT_WITH_SCANLINES, CORE_RUNNER_SCREEN_TYPE_FIT};
+												screen_type = next[screen_type];
+
+												CoreRunner_SetScreenType(screen_type);
 											}
 
 											break;

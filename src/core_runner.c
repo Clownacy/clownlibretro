@@ -55,7 +55,7 @@ typedef struct Core
 static bool quit;
 
 static bool alternate_layout;
-static bool pixel_perfect;
+static CoreRunnerScreenType screen_type;
 
 static double *frames_per_second;
 
@@ -827,13 +827,13 @@ bool CoreRunner_Update(void)
 
 void CoreRunner_Draw(void)
 {
+	const size_t upscale_factor = MAX(1, MIN(window_width / core_framebuffer_display_width, window_height / core_framebuffer_display_height));
+
 	size_t dst_width;
 	size_t dst_height;
 
-	if (pixel_perfect)
+	if (screen_type == CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT || screen_type == CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT_WITH_SCANLINES)
 	{
-		size_t upscale_factor = MAX(1, MIN(window_width / core_framebuffer_display_width, window_height / core_framebuffer_display_height));
-
 		dst_width = core_framebuffer_display_width * upscale_factor;
 		dst_height = core_framebuffer_display_height * upscale_factor;
 	}
@@ -855,6 +855,10 @@ void CoreRunner_Draw(void)
 	const Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
 
 	Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, (Video_Colour){0xFF, 0xFF, 0xFF});
+
+	if (screen_type == CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT_WITH_SCANLINES)
+		for (size_t i = 0; i < core_framebuffer_display_height; ++i)
+			Video_DrawLine(dst_rect.x, dst_rect.y + i * upscale_factor, dst_rect.x + dst_rect.width, dst_rect.y + i * upscale_factor);
 }
 
 void CoreRunner_GetVariables(Variable **variables_pointer, size_t *total_variables_pointer)
@@ -873,7 +877,7 @@ void CoreRunner_SetAlternateButtonLayout(bool enable)
 	alternate_layout = enable;
 }
 
-void CoreRunner_SetPixelPerfect(bool enable)
+void CoreRunner_SetScreenType(CoreRunnerScreenType _screen_type)
 {
-	pixel_perfect = enable;
+	screen_type = _screen_type;
 }

@@ -16,7 +16,7 @@ size_t window_width;
 size_t window_height;
 
 static SDL_Window *window;
-static SDL_Renderer *renderer;
+SDL_Renderer *renderer;
 
 static bool sdl_already_initialised;
 
@@ -185,4 +185,9 @@ void Video_ColourFill(const Video_Rect *rect, Video_Colour colour, unsigned char
 
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xFF);
+}
+
+void Video_DrawLine(size_t x1, size_t y1, size_t x2, size_t y2)
+{
+	SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
 }
