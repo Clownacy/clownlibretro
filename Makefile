@@ -1,3 +1,5 @@
+SOURCE_DIRECTORY = src
+BINARY_DIRECTORY = bin
 ifeq ($(RELEASE), 1)
  OBJECT_DIRECTORY = obj/release
 else
@@ -16,9 +18,9 @@ else
   CFLAGS += -Og -ggdb3 -fsanitize=address
 endif
 
-$(OBJECT_DIRECTORY)/%.o: %.c
+$(OBJECT_DIRECTORY)/%.o: $(SOURCE_DIRECTORY)/%.c
 	mkdir -p $(OBJECT_DIRECTORY)
 	$(CC) $(CFLAGS) -o $@ $^ -c
 
-libretro: $(OBJECTS)
+$(BINARY_DIRECTORY)/libretro: $(OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
