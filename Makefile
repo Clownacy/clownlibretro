@@ -22,5 +22,5 @@ $(OBJECT_DIRECTORY)/%.o: $(SOURCE_DIRECTORY)/%.c
 	mkdir -p $(OBJECT_DIRECTORY)
 	$(CC) $(CFLAGS) -o $@ $^ -c
 
-$(BINARY_DIRECTORY)/libretro: $(OBJECTS)
+$(BINARY_DIRECTORY)/clownlibretro: $(OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
