@@ -254,33 +254,32 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 	{
 		for (size_t i = 0; i < total_options; ++i)
 		{
-			const char *value_pointer = strchr(variables[i].value, ';');
+			char *value_string_pointer = strdup(variables[i].value);
 
 			options[i].key = variables[i].key;
-			options[i].desc = strndup(variables[i].value, value_pointer - variables[i].value);
+			options[i].desc = value_string_pointer;
 			options[i].info = "";
 			options[i].default_value = NULL;
 
 			size_t total_values = 0;
 
-			value_pointer += 2;
+			value_string_pointer = strchr(value_string_pointer, ';');
+
+			*value_string_pointer++ = '\0';
 
 			for (;;)
 			{
-				size_t value_length = 0;
-
-				while (value_pointer[value_length] != '|' && value_pointer[value_length] != '\0')
-					++value_length;
-
-				options[i].values[total_values].value = strndup(value_pointer, value_length);
+				options[i].values[total_values].value = ++value_string_pointer;
 				options[i].values[total_values].label = NULL;
 
 				++total_values;
 
-				if (value_pointer[value_length] == '\0')
+				value_string_pointer = strchr(value_string_pointer, '|');
+
+				if (value_string_pointer == NULL)
 					break;
 
-				value_pointer += value_length + 1;
+				*value_string_pointer = '\0';
 			}
 
 			options[i].values[total_values].value = NULL;
@@ -299,12 +298,7 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 
 		// Now get rid of it
 		for (size_t i = 0; i < total_options; ++i)
-		{
 			free((char*)options[i].desc);
-
-			for (const struct retro_core_option_value *value = options[i].values; value->value != NULL; ++value)
-				free((char*)value->value);
-		}
 
 		free(options);
 	}
