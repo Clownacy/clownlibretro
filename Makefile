@@ -1,4 +1,8 @@
-OBJECT_DIRECTORY = obj
+ifeq ($(RELEASE), 1)
+ OBJECT_DIRECTORY = obj/release
+else
+ OBJECT_DIRECTORY = obj/debug
+endif
 
 CFLAGS = -std=gnu99 -Wall -Wextra -pedantic $(shell pkg-config --cflags sdl2 libzip freetype2) -DFREETYPE_FONTS
 LIBS = -lm $(shell pkg-config --libs sdl2 libzip freetype2)
