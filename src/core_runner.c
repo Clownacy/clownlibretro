@@ -182,7 +182,7 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 
 			variables[i].key = strdup(options[i].key);
 			variables[i].desc = strdup(options[i].desc);
-			variables[i].info = strdup(options[i].info);
+			variables[i].info = options[i].info == NULL ? NULL : strdup(options[i].info);
 
 			for (size_t j = 0; j < variables[i].total_values; ++j)
 			{
@@ -258,7 +258,7 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 
 			options[i].key = variables[i].key;
 			options[i].desc = value_string_pointer;
-			options[i].info = "";
+			options[i].info = NULL;
 			options[i].default_value = NULL;
 
 			size_t total_values = 0;
