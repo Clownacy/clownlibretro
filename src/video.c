@@ -85,7 +85,7 @@ Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format for
 
 	if (texture != NULL)
 	{
-		const SDL_PixelFormatEnum sdl_formats[] = {SDL_PIXELFORMAT_RGB555, SDL_PIXELFORMAT_RGB888, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA32};
+		const Uint32 sdl_formats[] = {SDL_PIXELFORMAT_RGB555, SDL_PIXELFORMAT_RGB888, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA32};
 
 		texture->sdl_texture = SDL_CreateTexture(renderer, sdl_formats[format], streaming ? SDL_TEXTUREACCESS_STREAMING : SDL_TEXTUREACCESS_STATIC, width, height);
 
