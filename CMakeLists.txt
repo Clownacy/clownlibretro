@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.0...3.14)
 
+option(CLOWNLIBRETRO_STB_TRUETYPE_FONT_RENDERER "Use stb_truetype as the font renderer instead of FreeType" OFF)
+
 project(clownlibretro LANGUAGES C)
 
 add_executable(clownlibretro
@@ -26,8 +28,13 @@ target_compile_definitions(clownlibretro PRIVATE FREETYPE_FONTS)
 find_package(SDL2 REQUIRED)
 target_link_libraries(clownlibretro PRIVATE SDL2::SDL2)
 
-find_package(Freetype REQUIRED)
-target_link_libraries(clownlibretro PRIVATE Freetype::Freetype)
+if(CLOWNLIBRETRO_STB_TRUETYPE_FONT_RENDERER)
+	target_sources(clownlibretro PRIVATE "src/stb_truetype.h")
+	target_compile_definitions(clownlibretro PRIVATE FONT_STB)
+else()
+	find_package(Freetype REQUIRED)
+	target_link_libraries(clownlibretro PRIVATE Freetype::Freetype)
+endif()
 
 find_library(LIBM m)
 if(LIBM)

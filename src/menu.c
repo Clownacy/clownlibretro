@@ -8,25 +8,79 @@
 #include "input.h"
 #include "video.h"
 
+#define FONT_WIDTH 20
+#define FONT_HEIGHT 20
+
 static
 #include "dejavu.h"
 
-static Font *font;
-static size_t font_width;
-static size_t font_height;
+static Font font;
+static Video_Texture *font_texture;
 
-static void DrawTextCentered(const char *text, size_t x, size_t y, Video_Colour colour)
+static void FontRectToVideoRect(Video_Rect* const video, const Font_Rect* const font)
 {
-	// TODO - Don't assume monospace. Will require modifications to `font.c`.
-
-	const size_t text_width = font_width * strlen(text);
-	const size_t text_height = font_height;
-
-	DrawText(font, NULL, x - text_width / 2 + 2, y - text_height / 2 + 2, (Video_Colour){0, 0, 0}, text);
-	DrawText(font, NULL, x - text_width / 2, y - text_height / 2, colour, text);
+	video->x = font->x;
+	video->y = font->y;
+	video->width = font->width;
+	video->height = font->height;
 }
 
-static void DrawOption(Menu *menu, size_t option, size_t x, size_t y, Video_Colour colour)
+static cc_bool FontCallback_CreateTexture(const size_t width, const size_t height, void* const user_data)
+{
+	(void)user_data;
+
+	font_texture = Video_TextureCreate(width, height, VIDEO_FORMAT_A8, false);
+
+	return font_texture != NULL;
+}
+
+static void FontCallback_DestroyTexture(void* const user_data)
+{
+	(void)user_data;
+
+	Video_TextureDestroy(font_texture);
+}
+
+static void FontCallback_UpdateTexture(const unsigned char* const pixels, const Font_Rect* const rect, void* const user_data)
+{
+	Video_Rect video_rect;
+
+	(void)user_data;
+
+	FontRectToVideoRect(&video_rect, rect);
+	// Note that we skip over the shadow texture here, since we don't need it.
+	Video_TextureUpdate(font_texture, pixels + rect->width * rect->height, rect->width, &video_rect);
+}
+
+static void FontCallback_DrawTexture(const Font_Rect* const dst_rect, const Font_Rect* const src_rect, const Font_Colour* const colour, const cc_bool do_shadow, void* const user_data)
+{
+	Video_Rect video_src_rect, video_dst_rect;
+
+	const Video_Colour video_colour_black = {0, 0, 0};
+	const Video_Colour video_colour = {colour->red, colour->green, colour->blue};
+
+	(void)user_data;
+	(void)do_shadow;
+
+	FontRectToVideoRect(&video_src_rect, src_rect);
+	FontRectToVideoRect(&video_dst_rect, dst_rect);
+
+	video_dst_rect.x += 2;
+	video_dst_rect.y += 2;
+	Video_TextureDraw(font_texture, &video_dst_rect, &video_src_rect, video_colour_black);
+	video_dst_rect.x -= 2;
+	video_dst_rect.y -= 2;
+	Video_TextureDraw(font_texture, &video_dst_rect, &video_src_rect, video_colour);
+}
+
+static const Font_Callbacks font_callbacks = {NULL, FontCallback_CreateTexture, FontCallback_DestroyTexture, FontCallback_UpdateTexture, FontCallback_DrawTexture};
+
+static void DrawTextCentered(const char *text, size_t x, size_t y, const Font_Colour *colour)
+{
+	Font_DrawTextCentred(&font, x, y - FONT_HEIGHT / 2, colour, text, strlen(text), &font_callbacks);
+}
+
+static void DrawOption(Menu *menu, size_t option, size_t x, size_t y, const Font_Colour *colour)
 {
 	DrawTextCentered(menu->options[option].label, x, y - 10, colour);
 	DrawTextCentered(menu->options[option].value, x, y + 10, colour);
@@ -34,16 +88,12 @@ static void DrawOption(Menu *menu, size_t option, size_t x, size_t y, Video_Colo
 
 bool Menu_Init(void)
 {
-	font_width = 10;
-	font_height = 20;
-	font = LoadFreeTypeFontFromData(dejavu, sizeof(dejavu), font_width, font_height, true);
-
-	return font != NULL;
+	return Font_LoadFromMemory(&font, dejavu, sizeof(dejavu), FONT_WIDTH, FONT_HEIGHT, true, 0, &font_callbacks);
 }
 
 void Menu_Deinit(void)
 {
-	UnloadFont(font);
+	Font_Unload(&font, &font_callbacks);
 }
 
 Menu* Menu_Create(Menu_Callback *callbacks, size_t total_callbacks)
@@ -113,16 +163,16 @@ void Menu_Draw(Menu *menu)
 {
 	if (menu->total_options == 0)
 	{
-		DrawTextCentered("NO OPTIONS", window_width / 2, window_height / 2, (Video_Colour){0xFF, 0xFF, 0xFF});
+		DrawTextCentered("NO OPTIONS", window_width / 2, window_height / 2, &(Font_Colour){0xFF, 0xFF, 0xFF});
 	}
 	else
 	{
 		if (menu->selected_option != 0)
-			DrawOption(menu, menu->selected_option - 1, window_width / 2, window_height / 2 - 80, (Video_Colour){0xFF, 0xFF, 0xFF});
+			DrawOption(menu, menu->selected_option - 1, window_width / 2, window_height / 2 - 80, &(Font_Colour){0xFF, 0xFF, 0xFF});
 
-		DrawOption(menu, menu->selected_option, window_width / 2, window_height / 2, (Video_Colour){0xFF, 0xFF, 0x80});
+		DrawOption(menu, menu->selected_option, window_width / 2, window_height / 2, &(Font_Colour){0xFF, 0xFF, 0x80});
 
 		if (menu->selected_option != menu->total_options - 1)
-			DrawOption(menu, menu->selected_option + 1, window_width / 2, window_height / 2 + 80, (Video_Colour){0xFF, 0xFF, 0xFF});
+			DrawOption(menu, menu->selected_option + 1, window_width / 2, window_height / 2 + 80, &(Font_Colour){0xFF, 0xFF, 0xFF});
 	}
 }
