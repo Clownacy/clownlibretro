@@ -5,40 +5,32 @@
 
 #include "SDL.h"
 
-bool FileToMemory(const char *filename, unsigned char **buffer, size_t *size)
+bool FileToMemory(const char* const filename, unsigned char** const buffer, size_t* const size)
 {
-	SDL_RWops *file = SDL_RWFromFile(filename, "rb");
+	SDL_RWops* const file = SDL_RWFromFile(filename, "rb");
 
-	if (file != NULL)
-	{
-		SDL_RWseek(file, 0, RW_SEEK_END);
-		*size = SDL_RWtell(file);
-		*buffer = SDL_malloc(*size);
-		SDL_RWseek(file, 0, RW_SEEK_SET);
-		SDL_RWread(file, *buffer, 1, *size);
-		SDL_RWclose(file);
-
-		return true;
-	}
-	else
-	{
+	if (file == NULL)
 		return false;
-	}
+
+	SDL_RWseek(file, 0, RW_SEEK_END);
+	*size = SDL_RWtell(file);
+	*buffer = SDL_malloc(*size);
+	SDL_RWseek(file, 0, RW_SEEK_SET);
+	SDL_RWread(file, *buffer, 1, *size);
+	SDL_RWclose(file);
+
+	return true;
 }
 
-bool MemoryToFile(const char *filename, const unsigned char *buffer, size_t size)
+bool MemoryToFile(const char* const filename, const unsigned char* const buffer, const size_t size)
 {
-	SDL_RWops *file = SDL_RWFromFile(filename, "wb");
+	SDL_RWops* const file = SDL_RWFromFile(filename, "wb");
 
-	if (file != NULL)
-	{
-		SDL_RWwrite(file, buffer, 1, size);
-		SDL_RWclose(file);
-
-		return true;
-	}
-	else
-	{
+	if (file == NULL)
 		return false;
-	}
+
+	SDL_RWwrite(file, buffer, 1, size);
+	SDL_RWclose(file);
+
+	return true;
 }
