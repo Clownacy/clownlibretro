@@ -161,18 +161,22 @@ void Menu_Update(Menu *menu)
 
 void Menu_Draw(Menu *menu)
 {
+	const Font_Colour white = {0xFF, 0xFF, 0xFF};
+
 	if (menu->total_options == 0)
 	{
-		DrawTextCentered("NO OPTIONS", window_width / 2, window_height / 2, &(Font_Colour){0xFF, 0xFF, 0xFF});
+		DrawTextCentered("NO OPTIONS", window_width / 2, window_height / 2, &white);
 	}
 	else
 	{
-		if (menu->selected_option != 0)
-			DrawOption(menu, menu->selected_option - 1, window_width / 2, window_height / 2 - 80, &(Font_Colour){0xFF, 0xFF, 0xFF});
+		const Font_Colour yellow = {0xFF, 0xFF, 0x80};
 
-		DrawOption(menu, menu->selected_option, window_width / 2, window_height / 2, &(Font_Colour){0xFF, 0xFF, 0x80});
+		if (menu->selected_option != 0)
+			DrawOption(menu, menu->selected_option - 1, window_width / 2, window_height / 2 - 80, &white);
+
+		DrawOption(menu, menu->selected_option, window_width / 2, window_height / 2, &yellow);
 
 		if (menu->selected_option != menu->total_options - 1)
-			DrawOption(menu, menu->selected_option + 1, window_width / 2, window_height / 2 + 80, &(Font_Colour){0xFF, 0xFF, 0xFF});
+			DrawOption(menu, menu->selected_option + 1, window_width / 2, window_height / 2 + 80, &white);
 	}
 }
