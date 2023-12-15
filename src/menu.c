@@ -68,11 +68,11 @@ static void FontCallback_DrawTexture(const Font_Rect* const dst_rect, const Font
 	FontRectToVideoRect(&video_src_rect, src_rect);
 	FontRectToVideoRect(&video_dst_rect, dst_rect);
 
-	video_dst_rect.x += 2;
-	video_dst_rect.y += 2;
+	video_dst_rect.x += DPI_SCALE(2);
+	video_dst_rect.y += DPI_SCALE(2);
 	Video_TextureDraw(font_texture, &video_dst_rect, &video_src_rect, video_colour_black);
-	video_dst_rect.x -= 2;
-	video_dst_rect.y -= 2;
+	video_dst_rect.x -= DPI_SCALE(2);
+	video_dst_rect.y -= DPI_SCALE(2);
 	Video_TextureDraw(font_texture, &video_dst_rect, &video_src_rect, video_colour);
 }
 
