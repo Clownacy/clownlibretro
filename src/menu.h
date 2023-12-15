@@ -40,8 +40,9 @@ typedef struct Menu
 	Menu_Option options[];
 } Menu;
 
-bool Menu_Init(void);
+bool Menu_Init(float dpi);
 void Menu_Deinit(void);
+void Menu_ChangeDPI(float dpi);
 
 Menu* Menu_Create(Menu_Callback *callbacks, size_t total_callbacks);
 void Menu_Destroy(Menu *menu);

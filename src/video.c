@@ -86,6 +86,15 @@ void Video_WindowResized(void)
 	window_height = height;
 }
 
+float Video_GetDPIScale(void)
+{
+	int renderer_width, window_width;
+	SDL_GetRendererOutputSize(renderer, &renderer_width, NULL);
+	SDL_GetWindowSize(window, &window_width, NULL);
+	return (float)renderer_width / window_width;
+
+}
+
   ///////////////////
  // Texture stuff //
 ///////////////////

@@ -11,11 +11,14 @@
 #define FONT_WIDTH 20
 #define FONT_HEIGHT 20
 
+#define DPI_SCALE(x) (unsigned int)(x * dpi_scale)
+
 static
 #include "dejavu.h"
 
 static Font font;
 static Video_Texture *font_texture;
+static float dpi_scale;
 
 static void FontRectToVideoRect(Video_Rect* const video, const Font_Rect* const font)
 {
@@ -77,23 +80,30 @@ static const Font_Callbacks font_callbacks = {NULL, FontCallback_CreateTexture, 
 
 static void DrawTextCentered(const char *text, size_t x, size_t y, const Font_Colour *colour)
 {
-	Font_DrawTextCentred(&font, x, y - FONT_HEIGHT / 2, colour, text, strlen(text), &font_callbacks);
+	Font_DrawTextCentred(&font, x, y - DPI_SCALE(FONT_HEIGHT) / 2, colour, text, strlen(text), &font_callbacks);
 }
 
 static void DrawOption(Menu *menu, size_t option, size_t x, size_t y, const Font_Colour *colour)
 {
-	DrawTextCentered(menu->options[option].label, x, y - 10, colour);
-	DrawTextCentered(menu->options[option].value, x, y + 10, colour);
+	DrawTextCentered(menu->options[option].label, x, y - DPI_SCALE(10), colour);
+	DrawTextCentered(menu->options[option].value, x, y + DPI_SCALE(10), colour);
 }
 
-bool Menu_Init(void)
+bool Menu_Init(const float dpi)
 {
-	return Font_LoadFromMemory(&font, dejavu, sizeof(dejavu), FONT_WIDTH, FONT_HEIGHT, true, 0, &font_callbacks);
+	dpi_scale = dpi;
+	return Font_LoadFromMemory(&font, dejavu, sizeof(dejavu), FONT_WIDTH * dpi, FONT_HEIGHT * dpi, true, 0, &font_callbacks);
 }
 
 void Menu_Deinit(void)
 {
 	Font_Unload(&font, &font_callbacks);
+}
+
+void Menu_ChangeDPI(const float dpi)
+{
+	Menu_Deinit();
+	Menu_Init(dpi);
 }
 
 Menu* Menu_Create(Menu_Callback *callbacks, size_t total_callbacks)
@@ -163,6 +173,10 @@ void Menu_Draw(Menu *menu)
 {
 	const Font_Colour white = {0xFF, 0xFF, 0xFF};
 
+	const unsigned int background_height = DPI_SCALE(260);
+	const Video_Rect rect = {0, window_height / 2 - background_height / 2, window_width, background_height};
+	Video_ColourFill(&rect, (Video_Colour){0, 0, 0}, 0xA0);
+
 	if (menu->total_options == 0)
 	{
 		DrawTextCentered("NO OPTIONS", window_width / 2, window_height / 2, &white);
@@ -170,13 +184,14 @@ void Menu_Draw(Menu *menu)
 	else
 	{
 		const Font_Colour yellow = {0xFF, 0xFF, 0x80};
+		const unsigned int option_spacing = DPI_SCALE(80);
 
 		if (menu->selected_option != 0)
-			DrawOption(menu, menu->selected_option - 1, window_width / 2, window_height / 2 - 80, &white);
+			DrawOption(menu, menu->selected_option - 1, window_width / 2, window_height / 2 - option_spacing, &white);
 
 		DrawOption(menu, menu->selected_option, window_width / 2, window_height / 2, &yellow);
 
 		if (menu->selected_option != menu->total_options - 1)
-			DrawOption(menu, menu->selected_option + 1, window_width / 2, window_height / 2 + 80, &white);
+			DrawOption(menu, menu->selected_option + 1, window_width / 2, window_height / 2 + option_spacing, &white);
 	}
 }

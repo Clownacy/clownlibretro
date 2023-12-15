@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 			{
 				audio_initialised = Audio_Init();
 
-				Menu_Init();
+				Menu_Init(Video_GetDPIScale());
 
 				if (!CoreRunner_Init(argv[1], argv[2], &frames_per_second))
 				{
@@ -157,6 +157,7 @@ int main(int argc, char **argv)
 									{
 										case SDL_WINDOWEVENT_SIZE_CHANGED:
 											Video_WindowResized();
+											Menu_ChangeDPI(Video_GetDPIScale());
 											break;
 									}
 
@@ -397,11 +398,7 @@ int main(int argc, char **argv)
 						CoreRunner_Draw();
 
 						if (menu_open)
-						{
-							Video_Rect rect = {0, window_height / 2 - 130, window_width, 260};
-							Video_ColourFill(&rect, (Video_Colour){0, 0, 0}, 0xA0);
 							Menu_Draw(menu);
-						}
 
 						Video_Display();
 
