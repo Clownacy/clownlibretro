@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0...3.14)
 
 option(CLOWNLIBRETRO_STB_TRUETYPE_FONT_RENDERER "Use stb_truetype as the font renderer instead of FreeType" OFF)
+option(CLOWNLIBRETRO_ZIP_SUPPORT "Support loading games from ZIP files" OFF)
 
 project(clownlibretro LANGUAGES C)
 
@@ -34,6 +35,12 @@ if(CLOWNLIBRETRO_STB_TRUETYPE_FONT_RENDERER)
 else()
 	find_package(Freetype REQUIRED)
 	target_link_libraries(clownlibretro PRIVATE Freetype::Freetype)
+endif()
+
+if(CLOWNLIBRETRO_ZIP_SUPPORT)
+	find_package(libzip REQUIRED)
+	target_link_libraries(clownlibretro PRIVATE libzip::zip)
+	target_compile_definitions(clownlibretro PRIVATE ENABLE_LIBZIP)
 endif()
 
 find_library(LIBM m)
