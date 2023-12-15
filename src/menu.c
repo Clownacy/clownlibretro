@@ -8,6 +8,9 @@
 #include "input.h"
 #include "video.h"
 
+static
+#include "dejavu.h"
+
 static Font *font;
 static size_t font_width;
 static size_t font_height;
@@ -33,7 +36,7 @@ bool Menu_Init(void)
 {
 	font_width = 10;
 	font_height = 20;
-	font = LoadFreeTypeFont("font", font_width, font_height, true);
+	font = LoadFreeTypeFontFromData(dejavu, sizeof(dejavu), font_width, font_height, true);
 
 	return font != NULL;
 }
