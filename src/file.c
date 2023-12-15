@@ -2,21 +2,21 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
+
+#include "SDL.h"
 
 bool FileToMemory(const char *filename, unsigned char **buffer, size_t *size)
 {
-	FILE *file = fopen(filename, "rb");
+	SDL_RWops *file = SDL_RWFromFile(filename, "rb");
 
 	if (file != NULL)
 	{
-		fseek(file, 0, SEEK_END);
-		*size = ftell(file);
-		*buffer = malloc(*size);
-		rewind(file);
-		fread(*buffer, 1, *size, file);
-		fclose(file);
+		SDL_RWseek(file, 0, RW_SEEK_END);
+		*size = SDL_RWtell(file);
+		*buffer = SDL_malloc(*size);
+		SDL_RWseek(file, 0, RW_SEEK_SET);
+		SDL_RWread(file, *buffer, 1, *size);
+		SDL_RWclose(file);
 
 		return true;
 	}
@@ -28,12 +28,12 @@ bool FileToMemory(const char *filename, unsigned char **buffer, size_t *size)
 
 bool MemoryToFile(const char *filename, const unsigned char *buffer, size_t size)
 {
-	FILE *file = fopen(filename, "wb");
+	SDL_RWops *file = SDL_RWFromFile(filename, "wb");
 
 	if (file != NULL)
 	{
-		fwrite(buffer, 1, size, file);
-		fclose(file);
+		SDL_RWwrite(file, buffer, 1, size);
+		SDL_RWclose(file);
 
 		return true;
 	}

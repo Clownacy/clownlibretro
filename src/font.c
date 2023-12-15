@@ -370,7 +370,7 @@ Font* LoadFreeTypeFont(const char *font_filename, size_t cell_width, size_t cell
 	if (FileToMemory(font_filename, &file_buffer, &file_size))
 	{
 		font = LoadFreeTypeFontFromData(file_buffer, file_size, cell_width, cell_height, antialiasing);
-		free(file_buffer);
+		SDL_free(file_buffer);
 	}
 
 	return font;

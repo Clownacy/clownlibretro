@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <libgen.h>
 //#include <zip.h>
@@ -18,8 +16,8 @@
 #include "libretro.h"
 #include "video.h"
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) SDL_min(a, b)
+#define MAX(a, b) SDL_max(a, b)
 
 typedef struct Core
 { 
@@ -128,7 +126,7 @@ static bool LoadCore(Core *core, const char *filename)
 			{(void**)&core->retro_get_memory_size,            "retro_get_memory_size"           }
 		};
 
-		for (size_t i = 0; i < sizeof(imports) / sizeof(imports[0]); ++i)
+		for (size_t i = 0; i < SDL_arraysize(imports); ++i)
 		{
 			*imports[i].variable = SDL_LoadFunction(core->handle, imports[i].import_name);
 
@@ -163,7 +161,7 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 		++total_variables;
 
 	if (variables == NULL)
-		variables = malloc(sizeof(Variable) * total_variables);
+		variables = SDL_malloc(sizeof(Variable) * total_variables);
 
 	if (variables != NULL)
 	{
@@ -174,20 +172,20 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 
 			for (const struct retro_core_option_value *value = options[i].values; value->value != NULL; ++value)
 			{
-				if (options[i].default_value != NULL && !strcmp(value->value, options[i].default_value))
+				if (options[i].default_value != NULL && !SDL_strcmp(value->value, options[i].default_value))
 					variables[i].selected_value = variables[i].total_values;
 
 				++variables[i].total_values;
 			}
 
-			variables[i].key = strdup(options[i].key);
-			variables[i].desc = strdup(options[i].desc);
-			variables[i].info = options[i].info == NULL ? NULL : strdup(options[i].info);
+			variables[i].key = SDL_strdup(options[i].key);
+			variables[i].desc = SDL_strdup(options[i].desc);
+			variables[i].info = options[i].info == NULL ? NULL : SDL_strdup(options[i].info);
 
 			for (size_t j = 0; j < variables[i].total_values; ++j)
 			{
-				variables[i].values[j].value = strdup(options[i].values[j].value);
-				variables[i].values[j].label = options[i].values[j].label == NULL ? NULL : strdup(options[i].values[j].label);
+				variables[i].values[j].value = SDL_strdup(options[i].values[j].value);
+				variables[i].values[j].label = options[i].values[j].label == NULL ? NULL : SDL_strdup(options[i].values[j].label);
 			}
 		}
 	}
@@ -236,7 +234,7 @@ static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
 static void Callback_GetVariable(struct retro_variable *variable)
 {
 	for (size_t i = 0; i < total_variables; ++i)
-		if (!strcmp(variables[i].key, variable->key))
+		if (!SDL_strcmp(variables[i].key, variable->key))
 			variable->value = variables[i].values[variables[i].selected_value].value;
 }
 
@@ -248,13 +246,13 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 	for (const struct retro_variable *variable = variables; variable->key != NULL; ++variable)
 		++total_options;
 
-	struct retro_core_option_definition *options = malloc(sizeof(struct retro_core_option_definition) * (total_options + 1));
+	struct retro_core_option_definition *options = SDL_malloc(sizeof(struct retro_core_option_definition) * (total_options + 1));
 
 	if (options != NULL)
 	{
 		for (size_t i = 0; i < total_options; ++i)
 		{
-			char *value_string_pointer = strdup(variables[i].value);
+			char *value_string_pointer = SDL_strdup(variables[i].value);
 
 			options[i].key = variables[i].key;
 			options[i].desc = value_string_pointer;
@@ -263,7 +261,7 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 
 			size_t total_values = 0;
 
-			value_string_pointer = strchr(value_string_pointer, ';');
+			value_string_pointer = SDL_strchr(value_string_pointer, ';');
 
 			*value_string_pointer++ = '\0';
 
@@ -274,7 +272,7 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 
 				++total_values;
 
-				value_string_pointer = strchr(value_string_pointer, '|');
+				value_string_pointer = SDL_strchr(value_string_pointer, '|');
 
 				if (value_string_pointer == NULL)
 					break;
@@ -298,9 +296,9 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 
 		// Now get rid of it
 		for (size_t i = 0; i < total_options; ++i)
-			free((char*)options[i].desc);
+			SDL_free((char*)options[i].desc);
 
-		free(options);
+		SDL_free(options);
 	}
 }
 
@@ -517,7 +515,7 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 		if (Video_TextureLock(core_framebuffer, &rect, &destination_pixels, &destination_pitch))
 		{
 			for (unsigned int y = 0; y < height; ++y)
-				memcpy(&destination_pixels[destination_pitch * y], &source_pixels[pitch * y], width * size_of_framebuffer_pixel);
+				SDL_memcpy(&destination_pixels[destination_pitch * y], &source_pixels[pitch * y], width * size_of_framebuffer_pixel);
 
 			Video_TextureUnlock(core_framebuffer);
 		}
@@ -588,23 +586,20 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 	frames_per_second = _frames_per_second;
 
 	// Calculate some paths which will be needed later
-	core_path = strdup(_core_path);
-	game_path = strdup(_game_path);
+	core_path = SDL_strdup(_core_path);
+	game_path = SDL_strdup(_game_path);
 
 //	if (realpath(game_path, libretro_path) == NULL)
 //		fputs("realpath failed\n", stderr);
-	strcpy(libretro_path, game_path);
+	// TODO: This is a hack.
+	SDL_strlcpy(libretro_path, game_path, sizeof(libretro_path));
 
 	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
-	char *game_path_dup = strdup(game_path);
-	const char *game_filename = basename(game_path_dup);
+	const char *game_filename = basename(game_path);
 
-	save_file_path = malloc(strlen(pref_path) + strlen(game_filename) + 4 + 1);
+	SDL_asprintf(&save_file_path, "%s%s.sav", pref_path, game_filename);
 
-	sprintf(save_file_path, "%s%s.sav", pref_path, game_filename);
-
-	free(game_path_dup);
 
 	// Load the core, set some callbacks, and initialise it
 	if (!LoadCore(&core, core_path))
@@ -736,9 +731,9 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 					size_t save_file_size;
 					if (FileToMemory(save_file_path, &save_file_buffer, &save_file_size))
 					{
-						memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
+						SDL_memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
 
-						free(save_file_buffer);
+						SDL_free(save_file_buffer);
 
 						fputs("Save file read\n", stderr);
 					}
@@ -753,7 +748,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 				core.retro_unload_game();
 			}
 
-			free(game_buffer);
+			SDL_free(game_buffer);
 
 			core.retro_deinit();
 		}
@@ -761,12 +756,12 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 		UnloadCore(&core);
 	}
 
-	free(save_file_path);
+	SDL_free(save_file_path);
 
 	SDL_free(pref_path);
 
-	free(game_path);
-	free(core_path);
+	SDL_free(game_path);
+	SDL_free(core_path);
 
 	return false;
 }
@@ -789,33 +784,33 @@ void CoreRunner_Deinit(void)
 
 	core.retro_unload_game();
 
-	free(game_buffer);
+	SDL_free(game_buffer);
 
 	core.retro_deinit();
 
 	UnloadCore(&core);
 
-	free(save_file_path);
+	SDL_free(save_file_path);
 
 	SDL_free(pref_path);
 
-	free(game_path);
-	free(core_path);
+	SDL_free(game_path);
+	SDL_free(core_path);
 
 	for (size_t i = 0; i < total_variables; ++i)
 	{
-		free(variables[i].key);
-		free(variables[i].desc);
-		free(variables[i].info);
+		SDL_free(variables[i].key);
+		SDL_free(variables[i].desc);
+		SDL_free(variables[i].info);
 
 		for (size_t j = 0; j < variables[i].total_values; ++j)
 		{
-			free(variables[i].values[j].value);
-			free(variables[i].values[j].label);
+			SDL_free(variables[i].values[j].value);
+			SDL_free(variables[i].values[j].label);
 		}
 	}
 
-	free(variables);
+	SDL_free(variables);
 }
 
 bool CoreRunner_Update(void)
