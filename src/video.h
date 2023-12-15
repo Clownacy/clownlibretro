@@ -38,6 +38,7 @@ void Video_Deinit(void);
 void Video_Clear(void);
 void Video_Display(void);
 void Video_SetFullscreen(bool fullscreen);
+void Video_WindowResized(void);
 
 Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format format, bool streaming);
 void Video_TextureDestroy(Video_Texture *texture);

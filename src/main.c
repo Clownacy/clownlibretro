@@ -123,9 +123,6 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				window_width = 640;//system_av_info.geometry.base_width;
-				window_height = 480;//system_av_info.geometry.base_height;
-
 				audio_initialised = Audio_Init();
 
 				Menu_Init();
@@ -159,8 +156,7 @@ int main(int argc, char **argv)
 									switch (event.window.event)
 									{
 										case SDL_WINDOWEVENT_SIZE_CHANGED:
-											window_width = event.window.data1;
-											window_height = event.window.data2;
+											Video_WindowResized();
 											break;
 									}
 

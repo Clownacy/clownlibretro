@@ -30,14 +30,17 @@ bool Video_Init(size_t window_width, size_t window_height)
 
 	if (sdl_already_initialised || SDL_InitSubSystem(SDL_INIT_VIDEO) == 0)
 	{
-		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE);
+		window = SDL_CreateWindow("clownlibretro", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 
 		if (window != NULL)
 		{
 			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 			if (renderer != NULL)
+			{
+				Video_WindowResized();
 				return true;
+			}
 
 			SDL_DestroyWindow(window);
 		}
@@ -73,6 +76,14 @@ void Video_SetFullscreen(bool fullscreen)
 	SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
 	SDL_ShowCursor(fullscreen ? SDL_DISABLE : SDL_ENABLE);
+}
+
+void Video_WindowResized(void)
+{
+	int width, height;
+	SDL_GetRendererOutputSize(renderer, &width, &height);
+	window_width = width;
+	window_height = height;
 }
 
   ///////////////////
