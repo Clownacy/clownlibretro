@@ -62,8 +62,10 @@ static double *frames_per_second;
 static char *core_path;
 static char *game_path;
 //static char libretro_path[PATH_MAX];
-static char *pref_path;
+static char *assets_path;
+static char *saves_path;
 static char *save_file_path;
+static char *system_path;
 
 static Core core;
 static Variable *variables;
@@ -205,6 +207,11 @@ static void Callback_GetCanDupe(bool *can_dupe)
 static void Callback_Shutdown(void)
 {
 	quit = true;
+}
+
+static void Callback_GetSystemDirectory(const char **path)
+{
+	*path = system_path;
 }
 
 static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
@@ -360,12 +367,12 @@ static void Callback_GetLogInterface(struct retro_log_callback *log_callback)
 
 static void Callback_GetCoreAssetsDirectory(const char **directory)
 {
-	*directory = pref_path;
+	*directory = assets_path;
 }
 
 static void Callback_GetSaveDirectory(const char **directory)
 {
-	*directory = pref_path;
+	*directory = saves_path;
 }
 
 static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
@@ -433,6 +440,10 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 
 		case RETRO_ENVIRONMENT_SHUTDOWN:
 			Callback_Shutdown();
+			break;
+
+		case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
+			Callback_GetSystemDirectory(data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
@@ -595,12 +606,14 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 //	if (realpath(core_path, libretro_path) == NULL)
 //		fputs("realpath failed\n", stderr);
 
-	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
+	const char* const pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
 	const char *game_filename = basename(game_path);
 
-	SDL_asprintf(&save_file_path, "%s%s.sav", pref_path, game_filename);
-
+	SDL_asprintf(&saves_path, "%ssaves", pref_path);
+	SDL_asprintf(&save_file_path, "%s/%s.sav", saves_path, game_filename);
+	SDL_asprintf(&assets_path, "%sasserts", pref_path);
+	SDL_asprintf(&system_path, "%ssystem", pref_path);
 
 	// Load the core, set some callbacks, and initialise it
 	if (!LoadCore(&core, core_path))
@@ -760,12 +773,12 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 		UnloadCore(&core);
 	}
 
-	SDL_free(save_file_path);
-
-	SDL_free(pref_path);
-
-	SDL_free(game_path);
 	SDL_free(core_path);
+	SDL_free(game_path);
+	SDL_free(assets_path);
+	SDL_free(saves_path);
+	SDL_free(save_file_path);
+	SDL_free(system_path);
 
 	return false;
 }
@@ -794,12 +807,12 @@ void CoreRunner_Deinit(void)
 
 	UnloadCore(&core);
 
-	SDL_free(save_file_path);
-
-	SDL_free(pref_path);
-
-	SDL_free(game_path);
 	SDL_free(core_path);
+	SDL_free(game_path);
+	SDL_free(assets_path);
+	SDL_free(saves_path);
+	SDL_free(save_file_path);
+	SDL_free(system_path);
 
 	for (size_t i = 0; i < total_variables; ++i)
 	{
