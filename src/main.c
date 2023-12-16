@@ -304,7 +304,7 @@ int main(int argc, char **argv)
 											break;
 
 										case SDL_CONTROLLER_BUTTON_Y:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y].raw = event.cbutton.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X].raw = event.cbutton.state == SDL_PRESSED;
 											break;
 
 										case SDL_CONTROLLER_BUTTON_BACK:
