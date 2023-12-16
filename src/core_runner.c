@@ -532,6 +532,9 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 		Video_Rect rect = {0, 0, width, height};
 		size_t destination_pitch;
 
+		core_framebuffer_display_width = width;
+		core_framebuffer_display_height = height;
+
 		if (Video_TextureLock(core_framebuffer, &rect, &destination_pixels, &destination_pitch))
 		{
 			for (unsigned int y = 0; y < height; ++y)
