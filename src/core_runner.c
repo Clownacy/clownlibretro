@@ -61,7 +61,7 @@ static double *frames_per_second;
 
 static char *core_path;
 static char *game_path;
-static char libretro_path[PATH_MAX];
+//static char libretro_path[PATH_MAX];
 static char *pref_path;
 static char *save_file_path;
 
@@ -312,7 +312,7 @@ static void Callback_SetVariableUpdate(bool *update)
 
 static void Callback_GetLibretroPath(const char **path)
 {
-	*path = libretro_path;
+	*path = core_path;
 }
 
 static void Callback_GetInputDeviceCapabilities(uint64_t *capabilities)
@@ -591,10 +591,9 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 	core_path = SDL_strdup(_core_path);
 	game_path = SDL_strdup(_game_path);
 
-//	if (realpath(game_path, libretro_path) == NULL)
+	// TODO: For now, we're just assuming that the user passed an absolute path.
+//	if (realpath(core_path, libretro_path) == NULL)
 //		fputs("realpath failed\n", stderr);
-	// TODO: This is a hack.
-	SDL_strlcpy(libretro_path, game_path, sizeof(libretro_path));
 
 	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
