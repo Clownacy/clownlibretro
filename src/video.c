@@ -2,7 +2,6 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include <string.h>
 
 #include "SDL.h"
 
@@ -101,7 +100,7 @@ float Video_GetDPIScale(void)
 
 Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format format, bool streaming)
 {
-	Video_Texture *texture = malloc(sizeof(Video_Texture));
+	Video_Texture *texture = SDL_malloc(sizeof(Video_Texture));
 
 	if (texture != NULL)
 	{
@@ -118,7 +117,7 @@ Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format for
 			return texture;
 		}
 
-		free(texture);
+		SDL_free(texture);
 	}
 
 	return NULL;
@@ -127,7 +126,7 @@ Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format for
 void Video_TextureDestroy(Video_Texture *texture)
 {
 	SDL_DestroyTexture(texture->sdl_texture);
-	free(texture);
+	SDL_free(texture);
 }
 
 void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitch, const Video_Rect *rect)
@@ -136,7 +135,7 @@ void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitc
 
 	if (texture->format == VIDEO_FORMAT_A8)
 	{
-		unsigned char *rgba_pixels = malloc(rect->width * rect->height * 4);
+		unsigned char *rgba_pixels = SDL_malloc(rect->width * rect->height * 4);
 
 		if (rgba_pixels != NULL)
 		{
@@ -157,7 +156,7 @@ void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitc
 
 			SDL_UpdateTexture(texture->sdl_texture, &sdl_rect, rgba_pixels, rect->width * 4);
 
-			free(rgba_pixels);
+			SDL_free(rgba_pixels);
 		}
 	}
 	else
