@@ -34,7 +34,7 @@ bool Video_Init(size_t window_width, size_t window_height)
 
 		if (window != NULL)
 		{
-			renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+			renderer = SDL_CreateRenderer(window, -1, 0);
 
 			if (renderer != NULL)
 			{
