@@ -132,7 +132,7 @@ static size_t InputCallback(void* const user_data, cc_s16l* const buffer, const 
 static cc_bool OutputCallback(void* const user_data, const cc_s32f* const frame, const cc_u8f total_samples)
 {
 	CallbackUserData* const data = user_data;
-	Sint16 s16_frame[TOTAL_CHANNELS] = {frame[0], frame[1]};
+	const Sint16 s16_frame[TOTAL_CHANNELS] = {frame[0], frame[1]};
 
 	(void)total_samples;
 
