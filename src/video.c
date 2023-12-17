@@ -91,7 +91,6 @@ float Video_GetDPIScale(void)
 	SDL_GetRendererOutputSize(renderer, &renderer_width, NULL);
 	SDL_GetWindowSize(window, &window_width, NULL);
 	return (float)renderer_width / window_width;
-
 }
 
   ///////////////////

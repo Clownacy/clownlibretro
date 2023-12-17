@@ -682,7 +682,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 							if (zip_file != NULL)
 							{
-								game_buffer = malloc(stat.size);
+								game_buffer = SDL_malloc(stat.size);
 
 								if (game_buffer != NULL)
 								{
