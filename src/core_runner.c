@@ -165,7 +165,7 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 		++total_variables;
 
 	if (variables == NULL)
-		variables = SDL_malloc(sizeof(Variable) * total_variables);
+		variables = (Variable*)SDL_malloc(sizeof(Variable) * total_variables);
 
 	if (variables != NULL)
 	{
@@ -255,7 +255,7 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 	for (const struct retro_variable *variable = variables; variable->key != NULL; ++variable)
 		++total_options;
 
-	struct retro_core_option_definition *options = SDL_malloc(sizeof(struct retro_core_option_definition) * (total_options + 1));
+	struct retro_core_option_definition *options = (struct retro_core_option_definition*)SDL_malloc(sizeof(struct retro_core_option_definition) * (total_options + 1));
 
 	if (options != NULL)
 	{
@@ -442,7 +442,7 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 	switch (cmd)
 	{
 		case RETRO_ENVIRONMENT_GET_CAN_DUPE:
-			Callback_GetCanDupe(data);
+			Callback_GetCanDupe((bool*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_SHUTDOWN:
@@ -450,69 +450,69 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 			break;
 
 		case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
-			Callback_GetSystemDirectory(data);
+			Callback_GetSystemDirectory((const char**)data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
-			if (!Callback_SetPixelFormat(data))
+			if (!Callback_SetPixelFormat((const enum retro_pixel_format*)data))
 				return false;
 
 			break;
 
 		case RETRO_ENVIRONMENT_GET_VARIABLE:
-			Callback_GetVariable(data);
+			Callback_GetVariable((struct retro_variable*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_VARIABLES:
-			Callback_SetVariables(data);
+			Callback_SetVariables((const struct retro_variable*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
-			Callback_SetVariableUpdate(data);
+			Callback_SetVariableUpdate((bool*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_LIBRETRO_PATH:
-			Callback_GetLibretroPath(data);
+			Callback_GetLibretroPath((const char**)data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_INPUT_DEVICE_CAPABILITIES:
-			Callback_GetInputDeviceCapabilities(data);
+			Callback_GetInputDeviceCapabilities((uint64_t*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_LOG_INTERFACE:
-			Callback_GetLogInterface(data);
+			Callback_GetLogInterface((struct retro_log_callback*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY:
-			Callback_GetCoreAssetsDirectory(data);
+			Callback_GetCoreAssetsDirectory((const char**)data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
-			Callback_GetSaveDirectory(data);
+			Callback_GetSaveDirectory((const char**)data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
-			Callback_SetSystemAVInfo(data);
+			Callback_SetSystemAVInfo((const struct retro_system_av_info *)data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_GEOMETRY:
-			Callback_SetGeometry(data);
+			Callback_SetGeometry((const struct retro_game_geometry*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
-			Callback_GetCoreOptionsVersion(data);
+			Callback_GetCoreOptionsVersion((unsigned int*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_CORE_OPTIONS:
-			Callback_SetCoreOptions(data);
+			Callback_SetCoreOptions((const struct retro_core_option_definition*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL:
-			Callback_SetCoreOptionsIntl(data);
+			Callback_SetCoreOptionsIntl((const struct retro_core_options_intl*)data);
 			break;
 
 		case RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS:
-			Callback_GetInputMaxUsers(data);
+			Callback_GetInputMaxUsers((unsigned int*)data);
 			break;
 
 		default:
@@ -526,7 +526,7 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 {
 	if (data != NULL)
 	{
-		const unsigned char *source_pixels = data;
+		const unsigned char *source_pixels = (const unsigned char*)data;
 		unsigned char *destination_pixels;
 
 		Video_Rect rect = {0, 0, width, height};
@@ -682,7 +682,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 							if (zip_file != NULL)
 							{
-								game_buffer = SDL_malloc(stat.size);
+								game_buffer = (unsigned char*)SDL_malloc(stat.size);
 
 								if (game_buffer != NULL)
 								{

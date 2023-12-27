@@ -66,7 +66,7 @@ Audio_Stream* Audio_StreamCreate(unsigned long sample_rate)
 {
 	if (initialised)
 	{
-		Audio_Stream *stream = SDL_malloc(sizeof(Audio_Stream));
+		Audio_Stream *stream = (Audio_Stream*)SDL_malloc(sizeof(Audio_Stream));
 
 		if (stream != NULL)
 		{
@@ -118,7 +118,7 @@ typedef struct CallbackUserData
 
 static size_t InputCallback(void* const user_data, cc_s16l* const buffer, const size_t total_frames)
 {
-	CallbackUserData* const data = user_data;
+	CallbackUserData* const data = (CallbackUserData*)user_data;
 	const size_t frames_to_do = CLOWNRESAMPLER_MIN(total_frames, data->frames);
 
 	SDL_memcpy(buffer, data->data, frames_to_do * SIZE_OF_FRAME);
@@ -131,7 +131,7 @@ static size_t InputCallback(void* const user_data, cc_s16l* const buffer, const 
 
 static cc_bool OutputCallback(void* const user_data, const cc_s32f* const frame, const cc_u8f total_samples)
 {
-	CallbackUserData* const data = user_data;
+	CallbackUserData* const data = (CallbackUserData*)user_data;
 	const Sint16 s16_frame[TOTAL_CHANNELS] = {frame[0], frame[1]};
 
 	(void)total_samples;

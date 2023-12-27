@@ -16,7 +16,7 @@ bool FileToMemory(const char* const filename, unsigned char** const buffer, size
 
 	SDL_RWseek(file, 0, RW_SEEK_END);
 	*size = SDL_RWtell(file);
-	*buffer = SDL_malloc(*size);
+	*buffer = (unsigned char*)SDL_malloc(*size);
 
 	if (*buffer != NULL)
 	{
@@ -31,7 +31,7 @@ bool FileToMemory(const char* const filename, unsigned char** const buffer, size
 	return success;
 }
 
-bool MemoryToFile(const char* const filename, const unsigned char* const buffer, const size_t size)
+bool MemoryToFile(const char* const filename, const void* const buffer, const size_t size)
 {
 	SDL_RWops* const file = SDL_RWFromFile(filename, "wb");
 

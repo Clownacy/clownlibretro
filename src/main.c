@@ -25,7 +25,7 @@ static Menu *menu;
 
 static int OptionsMenuCallback(Menu_Option *option, Menu_CallbackAction action, void *user_data)
 {
-	Variable *variable = user_data;
+	Variable *variable = (Variable*)user_data;
 
 	switch (action)
 	{

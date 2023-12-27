@@ -99,7 +99,7 @@ float Video_GetDPIScale(void)
 
 Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format format, bool streaming)
 {
-	Video_Texture *texture = SDL_malloc(sizeof(Video_Texture));
+	Video_Texture *texture = (Video_Texture*)SDL_malloc(sizeof(Video_Texture));
 
 	if (texture != NULL)
 	{
@@ -134,7 +134,7 @@ void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitc
 
 	if (texture->format == VIDEO_FORMAT_A8)
 	{
-		unsigned char *rgba_pixels = SDL_malloc(rect->width * rect->height * 4);
+		unsigned char *rgba_pixels = (unsigned char*)SDL_malloc(rect->width * rect->height * 4);
 
 		if (rgba_pixels != NULL)
 		{

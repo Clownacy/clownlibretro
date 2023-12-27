@@ -108,7 +108,7 @@ void Menu_ChangeDPI(const float dpi)
 
 Menu* Menu_Create(Menu_Callback *callbacks, size_t total_callbacks)
 {
-	Menu *menu = malloc(sizeof(Menu) + total_callbacks * sizeof(Menu_Option));
+	Menu *menu = (Menu*)malloc(sizeof(Menu) + total_callbacks * sizeof(Menu_Option));
 
 	if (menu != NULL)
 	{
