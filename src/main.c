@@ -115,6 +115,9 @@ int main(int argc, char **argv)
 		}
 		else
 		{
+			// Enable high-DPI support on Windows because SDL2 is bad at being a platform abstraction library
+			SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+
 			if (!Video_Init(640, 480)) // TODO: Placeholder
 			{
 				fputs("InitVideo failed\n", stderr);
