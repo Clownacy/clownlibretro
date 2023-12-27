@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include <libgen.h>
 #ifdef ENABLE_LIBZIP
 #include <zip.h>
 #endif
@@ -630,7 +629,15 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 	if (pref_path == NULL)
 		pref_path = SDL_strdup("./");
 
-	const char *game_filename = basename(game_path);
+	const char* const forward_slash = SDL_strrchr(game_path, '/');
+#ifdef _WIN32
+	const char* const backward_slash = SDL_strrchr(game_path, '\\');
+#endif
+	const char* const game_filename =
+#ifdef _WIN32
+		forward_slash != NULL && backward_slash != NULL ? SDL_max(forward_slash, backward_slash) + 1 : backward_slash != NULL ? backward_slash + 1 :
+#endif
+		forward_slash != NULL ? forward_slash + 1 : game_path;
 
 	SDL_asprintf(&saves_path, "%ssaves", pref_path);
 	SDL_asprintf(&save_file_path, "%s/%s.sav", saves_path, game_filename);
