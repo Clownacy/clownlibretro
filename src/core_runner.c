@@ -630,7 +630,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 	SDL_asprintf(&saves_path, "%ssaves", pref_path);
 	SDL_asprintf(&save_file_path, "%s/%s.sav", saves_path, game_filename);
-	SDL_asprintf(&assets_path, "%sasserts", pref_path);
+	SDL_asprintf(&assets_path, "%sassets", pref_path);
 	SDL_asprintf(&system_path, "%ssystem", pref_path);
 
 	// Load the core, set some callbacks, and initialise it
