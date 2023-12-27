@@ -624,7 +624,11 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 //	if (realpath(core_path, libretro_path) == NULL)
 //		fputs("realpath failed\n", stderr);
 
-	const char* const pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
+	const char *pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
+
+	// If we cannot get the pref path, just use the working directory.
+	if (pref_path == NULL)
+		pref_path = SDL_strdup("./");
 
 	const char *game_filename = basename(game_path);
 
