@@ -26,7 +26,7 @@ add_executable(clownlibretro
 target_compile_definitions(clownlibretro PRIVATE FREETYPE_FONTS)
 
 find_package(SDL2 REQUIRED)
-target_link_libraries(clownlibretro PRIVATE SDL2::SDL2)
+target_link_libraries(clownlibretro PRIVATE SDL2::SDL2main SDL2::SDL2)
 
 if(CLOWNLIBRETRO_STB_TRUETYPE_FONT_RENDERER)
 	target_sources(clownlibretro PRIVATE "src/stb_truetype.h")
