@@ -540,6 +540,9 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 		core_framebuffer_display_width = width;
 		core_framebuffer_display_height = height;
 
+		SDL_assert(width <= core_framebuffer_max_width);
+		SDL_assert(height <= core_framebuffer_max_height);
+
 		if (Video_TextureLock(core_framebuffer, &rect, &destination_pixels, &destination_pitch))
 		{
 			for (unsigned int y = 0; y < height; ++y)
