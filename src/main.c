@@ -10,8 +10,6 @@
 #include "menu.h"
 #include "video.h"
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-
 static bool audio_initialised;
 
 static double frames_per_second;
@@ -195,7 +193,6 @@ int main(int argc, char **argv)
 
 											break;
 									}
-
 
 									switch (event.key.keysym.scancode)
 									{
@@ -409,7 +406,7 @@ int main(int argc, char **argv)
 						if (ticks_now < ticks_next)
 							SDL_Delay(ticks_next - ticks_now);
 
-						ticks_next = MAX(ticks_next, ticks_now) + 1000.0 / frames_per_second;
+						ticks_next = SDL_max(ticks_next, ticks_now) + 1000.0 / frames_per_second;
 					}
 
 					CoreRunner_Deinit();
