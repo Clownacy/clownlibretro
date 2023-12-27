@@ -674,65 +674,108 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 			bool game_loaded = false;
 
-			if (!system_info.need_fullpath)
-			{
 #ifdef ENABLE_LIBZIP
-				// If the file is a zip archive, then try extracting a useable file.
-				// If it isn't, just assume it's a plain ROM and load it to memory.
-				zip_t *zip = zip_open(game_path, ZIP_RDONLY, NULL);
+			// If the file is a zip archive, then try extracting a useable file.
+			// If it isn't, just assume it's a plain ROM and load it directly.
+			zip_t *zip = zip_open(game_path, ZIP_RDONLY, NULL);
 
-				if (zip != NULL)
+			if (zip != NULL)
+			{
+				const zip_int64_t total_files = zip_get_num_entries(zip, 0);
+				for (zip_int64_t i = 0; i < total_files; ++i)
 				{
-					const zip_int64_t total_files = zip_get_num_entries(zip, 0);
-					for (zip_int64_t i = 0; i < total_files; ++i)
+					zip_stat_t stat;
+					if (zip_stat_index(zip, i, 0, &stat) == 0 && stat.valid & ZIP_STAT_SIZE)
 					{
-						zip_stat_t stat;
-						if (zip_stat_index(zip, i, 0, &stat) == 0 && stat.valid & ZIP_STAT_SIZE)
+						zip_file_t *zip_file = zip_fopen_index(zip, i, 0);
+
+						if (zip_file != NULL)
 						{
-							zip_file_t *zip_file = zip_fopen_index(zip, i, 0);
+							game_buffer = (unsigned char*)SDL_malloc(stat.size);
 
-							if (zip_file != NULL)
+							if (game_buffer != NULL)
 							{
-								game_buffer = (unsigned char*)SDL_malloc(stat.size);
+								game_info.data = game_buffer;
+								game_info.size = stat.size;
 
-								if (game_buffer != NULL)
+								zip_fread(zip_file, game_buffer, game_info.size);
+
+								if (system_info.need_fullpath)
 								{
-									game_info.size = stat.size;
+									// Mesen is weird and demands a file path even for zipped files,
+									// so extract the ROM to a proper file and give Meson the path to it.
+									char *temporary_filename;
 
-									zip_fread(zip_file, game_buffer, game_info.size);
+									SDL_asprintf(&temporary_filename, "%stemp", pref_path);
 
-									game_info.data = game_buffer;
-									game_loaded = core.retro_load_game(&game_info);
-
-									if (game_loaded)
+									if (temporary_filename == NULL)
 									{
-										zip_fclose(zip_file);
-										break;
+										fputs("Could not obtain temporary filename\n", stderr);
+									}
+									else
+									{
+										SDL_RWops* const file = SDL_RWFromFile(temporary_filename, "wb");
+
+										if (file == NULL)
+										{
+											fprintf(stderr, "Could not open temporary file '%s' for writing\n", temporary_filename);
+										}
+										else
+										{
+											SDL_RWwrite(file, game_buffer, 1, game_info.size);
+											SDL_RWclose(file);
+
+											// We no longer need the buffer, so free it.
+											SDL_free(game_buffer);
+											game_buffer = NULL;
+
+											// Finally, load the extracted ROM file.
+											game_info.path = temporary_filename;
+											game_loaded = core.retro_load_game(&game_info);
+										}
+
+										SDL_free(temporary_filename);
 									}
 								}
+								else
+								{
+									// The libretro core is sane, so we can just give it the memory buffer.
+									game_loaded = core.retro_load_game(&game_info);
+								}
 
-								zip_fclose(zip_file);
+								if (game_loaded)
+								{
+									zip_fclose(zip_file);
+									break;
+								}
 							}
+
+							zip_fclose(zip_file);
 						}
 					}
-
-					zip_close(zip);
 				}
-				else
+
+				zip_close(zip);
+			}
+			else
 #endif
-				if (FileToMemory(game_path, &game_buffer, &game_info.size))
+			{
+				if (system_info.need_fullpath)
 				{
-					game_info.data = game_buffer;
 					game_loaded = core.retro_load_game(&game_info);
 				}
 				else
 				{
-					fprintf(stderr, "Could not open file '%s'\n", game_path);
+					if (FileToMemory(game_path, &game_buffer, &game_info.size))
+					{
+						game_info.data = game_buffer;
+						game_loaded = core.retro_load_game(&game_info);
+					}
+					else
+					{
+						fprintf(stderr, "Could not open file '%s'\n", game_path);
+					}
 				}
-			}
-			else
-			{
-				game_loaded = core.retro_load_game(&game_info);
 			}
 
 			if (!game_loaded)
