@@ -61,10 +61,8 @@ static double *frames_per_second;
 static char *core_path;
 static char *game_path;
 //static char libretro_path[PATH_MAX];
-static char *assets_path;
-static char *saves_path;
+static char *pref_path;
 static char *save_file_path;
-static char *system_path;
 
 static Core core;
 static Variable *variables;
@@ -210,7 +208,7 @@ static void Callback_Shutdown(void)
 
 static void Callback_GetSystemDirectory(const char **path)
 {
-	*path = system_path;
+	*path = pref_path;
 }
 
 static bool SetPixelFormat(const enum retro_pixel_format pixel_format)
@@ -371,12 +369,12 @@ static void Callback_GetLogInterface(struct retro_log_callback *log_callback)
 
 static void Callback_GetCoreAssetsDirectory(const char **directory)
 {
-	*directory = assets_path;
+	*directory = pref_path;
 }
 
 static void Callback_GetSaveDirectory(const char **directory)
 {
-	*directory = saves_path;
+	*directory = pref_path;
 }
 
 static void Callback_SetGeometry(const struct retro_game_geometry *geometry)
@@ -623,7 +621,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 //	if (realpath(core_path, libretro_path) == NULL)
 //		fputs("realpath failed\n", stderr);
 
-	const char *pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
+	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
 	// If we cannot get the pref path, just use the working directory.
 	if (pref_path == NULL)
@@ -639,10 +637,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 #endif
 		forward_slash != NULL ? forward_slash + 1 : game_path;
 
-	SDL_asprintf(&saves_path, "%ssaves", pref_path);
-	SDL_asprintf(&save_file_path, "%s/%s.sav", saves_path, game_filename);
-	SDL_asprintf(&assets_path, "%sassets", pref_path);
-	SDL_asprintf(&system_path, "%ssystem", pref_path);
+	SDL_asprintf(&save_file_path, "%s/%s.sav", pref_path, game_filename);
 
 	// Load the core, set some callbacks, and initialise it
 	if (!LoadCore(&core, core_path))
@@ -837,10 +832,8 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 	SDL_free(core_path);
 	SDL_free(game_path);
-	SDL_free(assets_path);
-	SDL_free(saves_path);
+	SDL_free(pref_path);
 	SDL_free(save_file_path);
-	SDL_free(system_path);
 
 	return false;
 }
@@ -871,10 +864,8 @@ void CoreRunner_Deinit(void)
 
 	SDL_free(core_path);
 	SDL_free(game_path);
-	SDL_free(assets_path);
-	SDL_free(saves_path);
+	SDL_free(pref_path);
 	SDL_free(save_file_path);
-	SDL_free(system_path);
 
 	for (size_t i = 0; i < total_variables; ++i)
 	{
