@@ -649,13 +649,16 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 			SetPixelFormat(RETRO_PIXEL_FORMAT_0RGB1555);
 
 			core.retro_set_environment(Callback_Environment);
+
+			// Mesen requires that this be called before retro_set_video_refresh.
+			// TODO: Tell Meson's devs to fix their core or tell libretro's devs to fix their API.
+			core.retro_init();
+
 			core.retro_set_video_refresh(Callback_VideoRefresh);
 			core.retro_set_audio_sample(Callback_AudioSample);
 			core.retro_set_audio_sample_batch(Callback_AudioSampleBatch);
 			core.retro_set_input_poll(Callback_InputPoll);
 			core.retro_set_input_state(Callback_InputState);
-
-			core.retro_init();
 
 			// Grab some info for later
 			struct retro_system_info system_info;
