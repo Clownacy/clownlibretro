@@ -214,9 +214,9 @@ static void Callback_GetSystemDirectory(const char **path)
 	*path = system_path;
 }
 
-static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
+static bool SetPixelFormat(const enum retro_pixel_format pixel_format)
 {
-	switch (*pixel_format)
+	switch (pixel_format)
 	{
 		case RETRO_PIXEL_FORMAT_0RGB1555:
 			core_framebuffer_format = VIDEO_FORMAT_0RGB1555;
@@ -238,6 +238,11 @@ static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
 	}
 
 	return true;
+}
+
+static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
+{
+	return SetPixelFormat(*pixel_format);
 }
 
 static void Callback_GetVariable(struct retro_variable *variable)
@@ -638,7 +643,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 		}
 		else
 		{
-			core_framebuffer_format = VIDEO_FORMAT_0RGB1555;
+			SetPixelFormat(RETRO_PIXEL_FORMAT_0RGB1555);
 
 			core.retro_set_environment(Callback_Environment);
 			core.retro_set_video_refresh(Callback_VideoRefresh);
