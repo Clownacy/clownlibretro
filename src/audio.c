@@ -4,21 +4,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "SDL.h"
-
-#define CLOWNRESAMPLER_STATIC
 #define CLOWNRESAMPLER_IMPLEMENTATION
 #include "clownresampler/clownresampler.h"
 
 #define TOTAL_CHANNELS 2
 #define SIZE_OF_FRAME (TOTAL_CHANNELS * sizeof(int16_t))
-
-struct Audio_Stream
-{
-	SDL_AudioDeviceID audio_device;
-	cc_u32f input_sample_rate, output_sample_rate, total_buffer_frames;
-	ClownResampler_HighLevel_State resampler;
-};
 
 static bool sdl_already_initialised;
 static bool initialised;
@@ -62,51 +52,43 @@ void Audio_Deinit(void)
  // Stream stuff //
 //////////////////
 
-Audio_Stream* Audio_StreamCreate(unsigned long sample_rate)
+bool Audio_StreamCreate(Audio_Stream *stream, unsigned long sample_rate)
 {
 	if (initialised)
 	{
-		Audio_Stream *stream = (Audio_Stream*)SDL_malloc(sizeof(Audio_Stream));
+		SDL_AudioSpec want, have;
+		SDL_zero(want);
+		want.freq = sample_rate;
+		want.format = AUDIO_S16SYS;
+		want.channels = TOTAL_CHANNELS;
+		// We want a 10ms buffer (this value must be a power of two).
+		want.samples = 1;
+		while (want.samples < want.freq / (1000 / 10))
+			want.samples <<= 1;
 
-		if (stream != NULL)
+		stream->audio_device = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+
+		if (stream->audio_device > 0)
 		{
-			SDL_AudioSpec want, have;
-			SDL_zero(want);
-			want.freq = sample_rate;
-			want.format = AUDIO_S16SYS;
-			want.channels = TOTAL_CHANNELS;
-			// We want a 10ms buffer (this value must be a power of two).
-			want.samples = 1;
-			while (want.samples < want.freq / (1000 / 10))
-				want.samples <<= 1;
+			stream->input_sample_rate = sample_rate;
+			stream->output_sample_rate = have.freq;
+			stream->total_buffer_frames = have.samples;
 
-			stream->audio_device = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+			SDL_PauseAudioDevice(stream->audio_device, 0);
 
-			if (stream->audio_device > 0)
-			{
-				stream->input_sample_rate = sample_rate;
-				stream->output_sample_rate = have.freq;
-				stream->total_buffer_frames = have.samples;
+			// Specify the greatest possible downsample.
+			ClownResampler_HighLevel_Init(&stream->resampler, TOTAL_CHANNELS, stream->input_sample_rate * 2, stream->output_sample_rate, stream->output_sample_rate);
 
-				SDL_PauseAudioDevice(stream->audio_device, 0);
-
-				// Specify the greatest possible downsample.
-				ClownResampler_HighLevel_Init(&stream->resampler, TOTAL_CHANNELS, stream->input_sample_rate * 2, stream->output_sample_rate, stream->output_sample_rate);
-
-				return stream;
-			}
-
-			SDL_free(stream);
+			return true;
 		}
 	}
 
-	return NULL;
+	return false;
 }
 
 void Audio_StreamDestroy(Audio_Stream *stream)
 {
 	SDL_CloseAudioDevice(stream->audio_device);
-	SDL_free(stream);
 }
 
 typedef struct CallbackUserData

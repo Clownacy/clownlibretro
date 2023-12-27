@@ -80,7 +80,8 @@ static float core_framebuffer_display_aspect_ratio;
 static Video_Format core_framebuffer_format;
 static size_t size_of_framebuffer_pixel;
 
-static Audio_Stream *audio_stream;
+static bool audio_stream_created;
+static Audio_Stream audio_stream;
 static unsigned long audio_stream_sample_rate;
 
   ////////////////
@@ -403,10 +404,10 @@ static bool SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
 
 	if (audio_stream_sample_rate != system_av_info->timing.sample_rate)
 	{
-		if (audio_stream != NULL)
-			Audio_StreamDestroy(audio_stream);
+		if (audio_stream_created)
+			Audio_StreamDestroy(&audio_stream);
 
-		audio_stream = Audio_StreamCreate(system_av_info->timing.sample_rate);
+		audio_stream_created = Audio_StreamCreate(&audio_stream, system_av_info->timing.sample_rate);
 
 		audio_stream_sample_rate = system_av_info->timing.sample_rate;
 	}
@@ -552,19 +553,19 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 
 static size_t Callback_AudioSampleBatch(const int16_t *data, size_t frames)
 {
-	if (audio_stream != NULL)
-		return Audio_StreamPushFrames(audio_stream, data, frames);
+	if (audio_stream_created)
+		return Audio_StreamPushFrames(&audio_stream, data, frames);
 	else
 		return frames;
 }
 
 static void Callback_AudioSample(int16_t left, int16_t right)
 {
-	if (audio_stream != NULL)
+	if (audio_stream_created)
 	{
 		const int16_t buffer[2] = {left, right};
 
-		Audio_StreamPushFrames(audio_stream, buffer, 1);
+		Audio_StreamPushFrames(&audio_stream, buffer, 1);
 	}
 }
 
@@ -849,8 +850,8 @@ void CoreRunner_Deinit(void)
 			fputs("Save file could not be written\n", stderr);
 	}
 
-	if (audio_stream != NULL)
-		Audio_StreamDestroy(audio_stream);
+	if (audio_stream_created)
+		Audio_StreamDestroy(&audio_stream);
 
 	Video_TextureDestroy(core_framebuffer);
 
