@@ -71,7 +71,8 @@ static bool variables_modified;
 
 static unsigned char *game_buffer;
 
-static Video_Texture *core_framebuffer;
+static bool core_framebuffer_created;
+static Video_Texture core_framebuffer;
 static size_t core_framebuffer_display_width;
 static size_t core_framebuffer_display_height;
 static size_t core_framebuffer_max_width;
@@ -393,10 +394,10 @@ static bool SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
 
 	if (core_framebuffer_max_width != system_av_info->geometry.max_width || core_framebuffer_max_height != system_av_info->geometry.max_height)
 	{
-		if (core_framebuffer != NULL)
-			Video_TextureDestroy(core_framebuffer);
+		if (core_framebuffer_created)
+			Video_TextureDestroy(&core_framebuffer);
 
-		core_framebuffer = Video_TextureCreate(system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, true);
+		core_framebuffer_created = Video_TextureCreate(&core_framebuffer, system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, true);
 
 		core_framebuffer_max_width = system_av_info->geometry.max_width;
 		core_framebuffer_max_height = system_av_info->geometry.max_height;
@@ -412,7 +413,7 @@ static bool SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
 		audio_stream_sample_rate = system_av_info->timing.sample_rate;
 	}
 
-	return core_framebuffer != NULL;
+	return core_framebuffer_created;
 }
 
 static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
@@ -541,12 +542,12 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 		SDL_assert(width <= core_framebuffer_max_width);
 		SDL_assert(height <= core_framebuffer_max_height);
 
-		if (Video_TextureLock(core_framebuffer, &rect, &destination_pixels, &destination_pitch))
+		if (Video_TextureLock(&core_framebuffer, &rect, &destination_pixels, &destination_pitch))
 		{
 			for (unsigned int y = 0; y < height; ++y)
 				SDL_memcpy(&destination_pixels[destination_pitch * y], &source_pixels[pitch * y], width * size_of_framebuffer_pixel);
 
-			Video_TextureUnlock(core_framebuffer);
+			Video_TextureUnlock(&core_framebuffer);
 		}
 	}
 }
@@ -857,7 +858,7 @@ void CoreRunner_Deinit(void)
 	if (audio_stream_created)
 		Audio_StreamDestroy(&audio_stream);
 
-	Video_TextureDestroy(core_framebuffer);
+	Video_TextureDestroy(&core_framebuffer);
 
 	core.retro_unload_game();
 
@@ -925,7 +926,7 @@ void CoreRunner_Draw(void)
 	const Video_Rect src_rect = {0, 0, core_framebuffer_display_width, core_framebuffer_display_height};
 	const Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
 
-	Video_TextureDraw(core_framebuffer, &dst_rect, &src_rect, (Video_Colour){0xFF, 0xFF, 0xFF});
+	Video_TextureDraw(&core_framebuffer, &dst_rect, &src_rect, (Video_Colour){0xFF, 0xFF, 0xFF});
 
 	if (screen_type == CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT_WITH_SCANLINES)
 		for (size_t i = 0; i < core_framebuffer_display_height; ++i)

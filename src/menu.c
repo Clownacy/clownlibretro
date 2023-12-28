@@ -17,7 +17,7 @@ static
 #include "dejavu.h"
 
 static Font font;
-static Video_Texture *font_texture;
+static Video_Texture font_texture;
 static float dpi_scale;
 
 static void FontRectToVideoRect(Video_Rect* const video, const Font_Rect* const font)
@@ -32,16 +32,14 @@ static cc_bool FontCallback_CreateTexture(const size_t width, const size_t heigh
 {
 	(void)user_data;
 
-	font_texture = Video_TextureCreate(width, height, VIDEO_FORMAT_A8, false);
-
-	return font_texture != NULL;
+	return Video_TextureCreate(&font_texture, width, height, VIDEO_FORMAT_A8, false);
 }
 
 static void FontCallback_DestroyTexture(void* const user_data)
 {
 	(void)user_data;
 
-	Video_TextureDestroy(font_texture);
+	Video_TextureDestroy(&font_texture);
 }
 
 static void FontCallback_UpdateTexture(const unsigned char* const pixels, const Font_Rect* const rect, void* const user_data)
@@ -52,7 +50,7 @@ static void FontCallback_UpdateTexture(const unsigned char* const pixels, const 
 
 	FontRectToVideoRect(&video_rect, rect);
 	// Note that we skip over the shadow texture here, since we don't need it.
-	Video_TextureUpdate(font_texture, pixels + rect->width * rect->height, rect->width, &video_rect);
+	Video_TextureUpdate(&font_texture, pixels + rect->width * rect->height, rect->width, &video_rect);
 }
 
 static void FontCallback_DrawTexture(const Font_Rect* const dst_rect, const Font_Rect* const src_rect, const Font_Colour* const colour, const cc_bool do_shadow, void* const user_data)
@@ -70,10 +68,10 @@ static void FontCallback_DrawTexture(const Font_Rect* const dst_rect, const Font
 
 	video_dst_rect.x += DPI_SCALE(2);
 	video_dst_rect.y += DPI_SCALE(2);
-	Video_TextureDraw(font_texture, &video_dst_rect, &video_src_rect, video_colour_black);
+	Video_TextureDraw(&font_texture, &video_dst_rect, &video_src_rect, video_colour_black);
 	video_dst_rect.x -= DPI_SCALE(2);
 	video_dst_rect.y -= DPI_SCALE(2);
-	Video_TextureDraw(font_texture, &video_dst_rect, &video_src_rect, video_colour);
+	Video_TextureDraw(&font_texture, &video_dst_rect, &video_src_rect, video_colour);
 }
 
 static const Font_Callbacks font_callbacks = {NULL, FontCallback_CreateTexture, FontCallback_DestroyTexture, FontCallback_UpdateTexture, FontCallback_DrawTexture};

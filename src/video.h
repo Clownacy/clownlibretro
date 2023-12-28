@@ -28,7 +28,11 @@ typedef enum Video_Format
 	VIDEO_FORMAT_A8 = 3
 } Video_Format;
 
-typedef struct Video_Texture Video_Texture;
+typedef struct Video_Texture
+{
+	SDL_Texture *sdl_texture;
+	Video_Format format;
+} Video_Texture;
 
 extern size_t window_width;
 extern size_t window_height;
@@ -41,7 +45,7 @@ void Video_SetFullscreen(bool fullscreen);
 void Video_WindowResized(void);
 float Video_GetDPIScale(void);
 
-Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format format, bool streaming);
+bool Video_TextureCreate(Video_Texture *texture, size_t width, size_t height, Video_Format format, bool streaming);
 void Video_TextureDestroy(Video_Texture *texture);
 void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitch, const Video_Rect *rect);
 bool Video_TextureLock(Video_Texture *texture, const Video_Rect *rect, unsigned char **buffer, size_t *pitch);

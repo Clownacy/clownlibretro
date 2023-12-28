@@ -5,12 +5,6 @@
 
 #include "SDL.h"
 
-struct Video_Texture
-{
-	SDL_Texture *sdl_texture;
-	Video_Format format;
-};
-
 size_t window_width;
 size_t window_height;
 
@@ -97,29 +91,22 @@ float Video_GetDPIScale(void)
  // Texture stuff //
 ///////////////////
 
-Video_Texture* Video_TextureCreate(size_t width, size_t height, Video_Format format, bool streaming)
+bool Video_TextureCreate(Video_Texture *texture, size_t width, size_t height, Video_Format format, bool streaming)
 {
-	Video_Texture *texture = (Video_Texture*)SDL_malloc(sizeof(Video_Texture));
+	static const Uint32 sdl_formats[] = {SDL_PIXELFORMAT_RGB555, SDL_PIXELFORMAT_RGB888, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA32};
 
-	if (texture != NULL)
+	texture->sdl_texture = SDL_CreateTexture(renderer, sdl_formats[format], streaming ? SDL_TEXTUREACCESS_STREAMING : SDL_TEXTUREACCESS_STATIC, width, height);
+
+	if (texture->sdl_texture != NULL)
 	{
-		static const Uint32 sdl_formats[] = {SDL_PIXELFORMAT_RGB555, SDL_PIXELFORMAT_RGB888, SDL_PIXELFORMAT_RGB565, SDL_PIXELFORMAT_RGBA32};
+		texture->format = format;
 
-		texture->sdl_texture = SDL_CreateTexture(renderer, sdl_formats[format], streaming ? SDL_TEXTUREACCESS_STREAMING : SDL_TEXTUREACCESS_STATIC, width, height);
+		SDL_SetTextureBlendMode(texture->sdl_texture, format == VIDEO_FORMAT_A8 ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE);
 
-		if (texture->sdl_texture != NULL)
-		{
-			texture->format = format;
-
-			SDL_SetTextureBlendMode(texture->sdl_texture, format == VIDEO_FORMAT_A8 ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE);
-
-			return texture;
-		}
-
-		SDL_free(texture);
+		return true;
 	}
 
-	return NULL;
+	return false;
 }
 
 void Video_TextureDestroy(Video_Texture *texture)
