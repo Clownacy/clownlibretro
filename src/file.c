@@ -5,7 +5,7 @@
 
 #include "SDL.h"
 
-bool FileToMemory(const char* const filename, unsigned char** const buffer, size_t* const size)
+bool ReadFileToAllocatedBuffer(const char* const filename, unsigned char** const buffer, size_t* const size)
 {
 	bool success = false;
 
@@ -29,7 +29,7 @@ bool FileToMemory(const char* const filename, unsigned char** const buffer, size
 	return success;
 }
 
-bool MemoryToFile(const char* const filename, const void* const buffer, const size_t size)
+bool WriteBufferToFile(const char* const filename, const void* const buffer, const size_t size)
 {
 	bool success = false;
 
@@ -45,7 +45,7 @@ bool MemoryToFile(const char* const filename, const void* const buffer, const si
 	return success;
 }
 
-bool ReadFileIntoBuffer(const char* const filename, void* const buffer, const size_t size)
+bool ReadFileToBuffer(const char* const filename, void* const buffer, const size_t size)
 {
 	bool success = false;
 

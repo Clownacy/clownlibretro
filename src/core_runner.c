@@ -773,7 +773,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 				}
 				else
 				{
-					if (FileToMemory(game_path, &game_buffer, &game_info.size))
+					if (ReadFileToAllocatedBuffer(game_path, &game_buffer, &game_info.size))
 					{
 						game_info.data = game_buffer;
 						game_loaded = core.retro_load_game(&game_info);
@@ -807,7 +807,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 					if (save_ram != NULL && save_ram_size != 0)
 					{
-						if (ReadFileIntoBuffer(save_file_path, save_ram, save_ram_size))
+						if (ReadFileToBuffer(save_file_path, save_ram, save_ram_size))
 							fputs("Save file read\n", stderr);
 						else
 							fputs("Save file could not be read\n", stderr);
@@ -843,7 +843,7 @@ void CoreRunner_Deinit(void)
 	if (save_ram != NULL && save_ram_size != 0)
 	{
 		// Write save data to file
-		if (MemoryToFile(save_file_path, save_ram, save_ram_size))
+		if (WriteBufferToFile(save_file_path, save_ram, save_ram_size))
 			fputs("Save file written\n", stderr);
 		else
 			fputs("Save file could not be written\n", stderr);
