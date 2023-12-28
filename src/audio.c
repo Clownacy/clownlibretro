@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #define CLOWNRESAMPLER_IMPLEMENTATION
+#define CLOWNRESAMPLER_NO_HIGH_LEVEL_RESAMPLE_END
 #include "clownresampler/clownresampler.h"
 
 #define TOTAL_CHANNELS 2
@@ -141,7 +142,6 @@ size_t Audio_StreamPushFrames(Audio_Stream *stream, const int16_t *data, size_t 
 
 		ClownResampler_HighLevel_Adjust(&stream->resampler, CLOWNRESAMPLER_MIN(adjusted_input_sample_rate, stream->input_sample_rate * 2), stream->output_sample_rate, stream->output_sample_rate);
 		ClownResampler_HighLevel_Resample(&stream->resampler, &resampler_precomputed, InputCallback, OutputCallback, &callback_user_data);
-		(void)ClownResampler_HighLevel_ResampleEnd; // Stupid 'unused function' warning...
 	}
 
 	return frames;
