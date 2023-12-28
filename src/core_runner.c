@@ -807,10 +807,10 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 					if (save_ram != NULL && save_ram_size != 0)
 					{
-						if (!(ReadFileIntoBuffer(save_file_path, save_ram, save_ram_size)))
-							fputs("Save file could not be read\n", stderr);
-						else
+						if (ReadFileIntoBuffer(save_file_path, save_ram, save_ram_size))
 							fputs("Save file read\n", stderr);
+						else
+							fputs("Save file could not be read\n", stderr);
 					}
 
 					return true;
@@ -837,10 +837,13 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 void CoreRunner_Deinit(void)
 {
-	if (core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) != 0)
+	void* const save_ram = core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+	const size_t save_ram_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+
+	if (save_ram != NULL && save_ram_size != 0)
 	{
 		// Write save data to file
-		if (MemoryToFile(save_file_path, core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM)))
+		if (MemoryToFile(save_file_path, save_ram, save_ram_size))
 			fputs("Save file written\n", stderr);
 		else
 			fputs("Save file could not be written\n", stderr);
