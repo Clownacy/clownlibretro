@@ -618,16 +618,17 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 	core_path = SDL_strdup(_core_path);
 	game_path = SDL_strdup(_game_path);
 
-	// TODO: For now, we're just assuming that the user passed an absolute path.
+	// TODO: For now, we're just assuming that the user passed an absolute path
 //	if (realpath(core_path, libretro_path) == NULL)
 //		fputs("realpath failed\n", stderr);
 
 	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
-	// If we cannot get the pref path, just use the working directory.
+	// If we cannot get the pref path, just use the working directory
 	if (pref_path == NULL)
 		pref_path = SDL_strdup("./");
 
+	// Extract the file name from the file path
 	const char* const forward_slash = SDL_strrchr(game_path, '/');
 #ifdef _WIN32
 	const char* const backward_slash = SDL_strrchr(game_path, '\\');
@@ -653,8 +654,10 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 		}
 		else
 		{
+			// Set default pixel format
 			SetPixelFormat(RETRO_PIXEL_FORMAT_0RGB1555);
 
+			// Registers callbacks with the libretro core
 			core.retro_set_environment(Callback_Environment);
 
 			// Mesen requires that this be called before retro_set_video_refresh.
