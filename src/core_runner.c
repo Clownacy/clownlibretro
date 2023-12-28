@@ -755,6 +755,8 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 									zip_fclose(zip_file);
 									break;
 								}
+
+								SDL_free(game_buffer);
 							}
 
 							zip_fclose(zip_file);
