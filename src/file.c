@@ -11,35 +11,52 @@ bool FileToMemory(const char* const filename, unsigned char** const buffer, size
 
 	SDL_RWops* const file = SDL_RWFromFile(filename, "rb");
 
-	if (file == NULL)
-		return false;
-
-	SDL_RWseek(file, 0, RW_SEEK_END);
-	*size = SDL_RWtell(file);
-	*buffer = (unsigned char*)SDL_malloc(*size);
-
-	if (*buffer != NULL)
+	if (file != NULL)
 	{
-		SDL_RWseek(file, 0, RW_SEEK_SET);
-		SDL_RWread(file, *buffer, 1, *size);
+		*size = SDL_RWsize(file);
+		*buffer = (unsigned char*)SDL_malloc(*size);
 
-		success = true;
+		if (*buffer != NULL)
+		{
+			SDL_RWread(file, *buffer, 1, *size);
+
+			success = true;
+		}
+
+		SDL_RWclose(file);
 	}
-
-	SDL_RWclose(file);
 
 	return success;
 }
 
 bool MemoryToFile(const char* const filename, const void* const buffer, const size_t size)
 {
+	bool success = false;
+
 	SDL_RWops* const file = SDL_RWFromFile(filename, "wb");
 
-	if (file == NULL)
-		return false;
+	if (file != NULL)
+	{
+		SDL_RWwrite(file, buffer, 1, size);
+		SDL_RWclose(file);
+		success = true;
+	}
 
-	SDL_RWwrite(file, buffer, 1, size);
-	SDL_RWclose(file);
+	return success;
+}
 
-	return true;
+bool ReadFileIntoBuffer(const char* const filename, void* const buffer, const size_t size)
+{
+	bool success = false;
+
+	SDL_RWops* const file = SDL_RWFromFile(filename, "rb");
+
+	if (file != NULL)
+	{
+		SDL_RWread(file, buffer, 1, size);
+		SDL_RWclose(file);
+		success = true;
+	}
+
+	return success;
 }

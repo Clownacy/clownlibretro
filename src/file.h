@@ -5,3 +5,4 @@
 
 bool FileToMemory(const char *filename, unsigned char **buffer, size_t *size);
 bool MemoryToFile(const char *filename, const void *buffer, size_t size);
+bool ReadFileIntoBuffer(const char* const filename, void* const buffer, const size_t size);

@@ -802,19 +802,15 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 				else
 				{
 					// Read save data from file
-					unsigned char *save_file_buffer;
-					size_t save_file_size;
-					if (FileToMemory(save_file_path, &save_file_buffer, &save_file_size))
-					{
-						SDL_memcpy(core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM), save_file_buffer, core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) < save_file_size ? core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM) : save_file_size);
+					void* const save_ram = core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+					const size_t save_ram_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
 
-						SDL_free(save_file_buffer);
-
-						fputs("Save file read\n", stderr);
-					}
-					else
+					if (save_ram != NULL && save_ram_size != 0)
 					{
-						fputs("Save file could not be read\n", stderr);
+						if (!(ReadFileIntoBuffer(save_file_path, save_ram, save_ram_size)))
+							fputs("Save file could not be read\n", stderr);
+						else
+							fputs("Save file read\n", stderr);
 					}
 
 					return true;
