@@ -9,7 +9,7 @@ size_t window_width;
 size_t window_height;
 
 static SDL_Window *window;
-SDL_Renderer *renderer;
+static SDL_Renderer *renderer;
 
 static bool sdl_already_initialised;
 
@@ -112,7 +112,6 @@ bool Video_TextureCreate(Video_Texture *texture, size_t width, size_t height, Vi
 void Video_TextureDestroy(Video_Texture *texture)
 {
 	SDL_DestroyTexture(texture->sdl_texture);
-	SDL_free(texture);
 }
 
 void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitch, const Video_Rect *rect)
