@@ -315,7 +315,7 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 static void Callback_SetVariableUpdate(bool *update)
 {
 	*update = variables_modified;
-	variables_modified = false;
+	variables_modified = cc_false;
 }
 
 static void Callback_GetLibretroPath(const char **path)
@@ -393,7 +393,7 @@ static bool SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
 		if (core_framebuffer_created)
 			Video_TextureDestroy(&core_framebuffer);
 
-		core_framebuffer_created = Video_TextureCreate(&core_framebuffer, system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, true);
+		core_framebuffer_created = Video_TextureCreate(&core_framebuffer, system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, cc_true);
 
 		core_framebuffer_max_width = system_av_info->geometry.max_width;
 		core_framebuffer_max_height = system_av_info->geometry.max_height;
