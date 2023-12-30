@@ -1,9 +1,10 @@
 #pragma once
 
-#include <stdbool.h>
 #include <stddef.h>
 
 #include "SDL.h"
+
+#include "clowncommon/clowncommon.h"
 
 typedef struct Video_Colour
 {
@@ -37,18 +38,18 @@ typedef struct Video_Texture
 extern size_t window_width;
 extern size_t window_height;
 
-bool Video_Init(size_t window_width, size_t window_height);
+cc_bool Video_Init(size_t window_width, size_t window_height);
 void Video_Deinit(void);
 void Video_Clear(void);
 void Video_Display(void);
-void Video_SetFullscreen(bool fullscreen);
+void Video_SetFullscreen(cc_bool fullscreen);
 void Video_WindowResized(void);
 float Video_GetDPIScale(void);
 
-bool Video_TextureCreate(Video_Texture *texture, size_t width, size_t height, Video_Format format, bool streaming);
+cc_bool Video_TextureCreate(Video_Texture *texture, size_t width, size_t height, Video_Format format, cc_bool streaming);
 void Video_TextureDestroy(Video_Texture *texture);
 void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitch, const Video_Rect *rect);
-bool Video_TextureLock(Video_Texture *texture, const Video_Rect *rect, unsigned char **buffer, size_t *pitch);
+cc_bool Video_TextureLock(Video_Texture *texture, const Video_Rect *rect, unsigned char **buffer, size_t *pitch);
 void Video_TextureUnlock(Video_Texture *texture);
 void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const Video_Rect *src_rect, Video_Colour colour);
 

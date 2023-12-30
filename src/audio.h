@@ -1,12 +1,14 @@
 #pragma once
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #include "SDL.h"
 
+#include "clowncommon/clowncommon.h"
+
 #define CLOWNRESAMPLER_STATIC
+#define CLOWNRESAMPLER_NO_HIGH_LEVEL_RESAMPLE_END
 #include "clownresampler/clownresampler.h"
 
 typedef struct Audio_Stream
@@ -16,9 +18,9 @@ typedef struct Audio_Stream
 	ClownResampler_HighLevel_State resampler;
 } Audio_Stream; 
 
-bool Audio_Init(void);
+cc_bool Audio_Init(void);
 void Audio_Deinit(void);
 
-bool Audio_StreamCreate(Audio_Stream *stream, unsigned long sample_rate);
+cc_bool Audio_StreamCreate(Audio_Stream *stream, unsigned long sample_rate);
 void Audio_StreamDestroy(Audio_Stream *stream);
 size_t Audio_StreamPushFrames(Audio_Stream *stream, const int16_t *data, size_t frames);

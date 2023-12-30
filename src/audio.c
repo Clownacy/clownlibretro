@@ -1,23 +1,21 @@
 #include "audio.h"
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
 #define CLOWNRESAMPLER_IMPLEMENTATION
-#define CLOWNRESAMPLER_NO_HIGH_LEVEL_RESAMPLE_END
 #include "clownresampler/clownresampler.h"
 
 #define TOTAL_CHANNELS 2
 #define SIZE_OF_FRAME (TOTAL_CHANNELS * sizeof(int16_t))
 
-static bool sdl_already_initialised;
-static bool initialised;
+static cc_bool sdl_already_initialised;
+static cc_bool initialised;
 static ClownResampler_Precomputed resampler_precomputed;
 
 static cc_u32f GetTargetFrames(const Audio_Stream* const stream)
 {
-	return CLOWNRESAMPLER_MAX(stream->total_buffer_frames * 2, stream->output_sample_rate / 20); // 50ms
+	return CLOWNRESAMPLER_MAX(stream->total_buffer_frames * 2, stream->output_sample_rate / 20); /* 50ms */
 }
 
 static cc_u32f GetTotalQueuedFrames(const Audio_Stream* const stream)
@@ -25,11 +23,11 @@ static cc_u32f GetTotalQueuedFrames(const Audio_Stream* const stream)
 	return SDL_GetQueuedAudioSize(stream->audio_device) / SIZE_OF_FRAME;
 }
 
-  ////////////////
- // Main stuff //
-////////////////
+/*************
+* Main stuff *
+*************/
 
-bool Audio_Init(void)
+cc_bool Audio_Init(void)
 {
 	sdl_already_initialised = SDL_WasInit(SDL_INIT_AUDIO);
 
@@ -46,23 +44,24 @@ void Audio_Deinit(void)
 	if (!sdl_already_initialised)
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 
-	initialised = false;
+	initialised = cc_false;
 }
 
-  //////////////////
- // Stream stuff //
-//////////////////
+/***************
+* Stream stuff *
+***************/
 
-bool Audio_StreamCreate(Audio_Stream *stream, unsigned long sample_rate)
+cc_bool Audio_StreamCreate(Audio_Stream *stream, unsigned long sample_rate)
 {
 	if (initialised)
 	{
 		SDL_AudioSpec want, have;
+
 		SDL_zero(want);
 		want.freq = sample_rate;
 		want.format = AUDIO_S16SYS;
 		want.channels = TOTAL_CHANNELS;
-		// We want a 10ms buffer (this value must be a power of two).
+		/* We want a 10ms buffer (this value must be a power of two). */
 		want.samples = 1;
 		while (want.samples < want.freq / (1000 / 10))
 			want.samples <<= 1;
@@ -77,14 +76,14 @@ bool Audio_StreamCreate(Audio_Stream *stream, unsigned long sample_rate)
 
 			SDL_PauseAudioDevice(stream->audio_device, 0);
 
-			// Specify the greatest possible downsample.
+			/* Specify the greatest possible downsample. */
 			ClownResampler_HighLevel_Init(&stream->resampler, TOTAL_CHANNELS, stream->input_sample_rate * 2, stream->output_sample_rate, stream->output_sample_rate);
 
-			return true;
+			return cc_true;
 		}
 	}
 
-	return false;
+	return cc_false;
 }
 
 void Audio_StreamDestroy(Audio_Stream *stream)
@@ -115,10 +114,12 @@ static size_t InputCallback(void* const user_data, cc_s16l* const buffer, const 
 static cc_bool OutputCallback(void* const user_data, const cc_s32f* const frame, const cc_u8f total_samples)
 {
 	CallbackUserData* const data = (CallbackUserData*)user_data;
-	const Sint16 s16_frame[TOTAL_CHANNELS] = {frame[0], frame[1]};
+	Sint16 s16_frame[TOTAL_CHANNELS];
 
 	(void)total_samples;
 
+	s16_frame[0] = frame[0];
+	s16_frame[1] = frame[1];
 	SDL_QueueAudio(data->audio_device, s16_frame, sizeof(s16_frame));
 
 	return cc_true;
@@ -129,16 +130,21 @@ size_t Audio_StreamPushFrames(Audio_Stream *stream, const int16_t *data, size_t 
 	const cc_u32f target_frames = GetTargetFrames(stream);
 	const cc_u32f queued_frames = GetTotalQueuedFrames(stream);
 
-	// If there is too much audio, just drop it because the dynamic rate control will be unable to handle it.
+	/* If there is too much audio, just drop it because the dynamic rate control will be unable to handle it. */
 	if (queued_frames < target_frames * 2)
 	{
-		// Hans-Kristian Arntzen's Dynamic Rate Control formula.
-		// https://github.com/libretro/docs/blob/master/archive/ratecontrol.pdf
-		const cc_u32f denominator = target_frames * 0x100; // The number here is the inverse of the formula's 'd' value.
+		CallbackUserData callback_user_data;
+
+		/* Hans-Kristian Arntzen's Dynamic Rate Control formula. */
+		/* https://github.com/libretro/docs/blob/master/archive/ratecontrol.pdf */
+		const cc_u32f denominator = target_frames * 0x100; /* The number here is the inverse of the formula's 'd' value. */
 		const cc_u32f numerator = queued_frames - target_frames + denominator;
 
-		const CallbackUserData callback_user_data = {data, frames, stream->audio_device};
-		const cc_u32f adjusted_input_sample_rate = (unsigned long long)stream->input_sample_rate * numerator / denominator;
+		const cc_u32f adjusted_input_sample_rate = (Uint64)stream->input_sample_rate * numerator / denominator;
+
+		callback_user_data.data = data;
+		callback_user_data.frames = frames;
+		callback_user_data.audio_device = stream->audio_device;
 
 		ClownResampler_HighLevel_Adjust(&stream->resampler, CLOWNRESAMPLER_MIN(adjusted_input_sample_rate, stream->input_sample_rate * 2), stream->output_sample_rate, stream->output_sample_rate);
 		ClownResampler_HighLevel_Resample(&stream->resampler, &resampler_precomputed, InputCallback, OutputCallback, &callback_user_data);

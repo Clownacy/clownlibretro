@@ -1,13 +1,12 @@
 #include "file.h"
 
-#include <stdbool.h>
 #include <stddef.h>
 
 #include "SDL.h"
 
-bool ReadFileToAllocatedBuffer(const char* const filename, unsigned char** const buffer, size_t* const size)
+cc_bool ReadFileToAllocatedBuffer(const char* const filename, unsigned char** const buffer, size_t* const size)
 {
-	bool success = false;
+	cc_bool success = cc_false;
 
 	SDL_RWops* const file = SDL_RWFromFile(filename, "rb");
 
@@ -20,7 +19,7 @@ bool ReadFileToAllocatedBuffer(const char* const filename, unsigned char** const
 		{
 			SDL_RWread(file, *buffer, 1, *size);
 
-			success = true;
+			success = cc_true;
 		}
 
 		SDL_RWclose(file);
@@ -29,9 +28,9 @@ bool ReadFileToAllocatedBuffer(const char* const filename, unsigned char** const
 	return success;
 }
 
-bool WriteBufferToFile(const char* const filename, const void* const buffer, const size_t size)
+cc_bool WriteBufferToFile(const char* const filename, const void* const buffer, const size_t size)
 {
-	bool success = false;
+	cc_bool success = cc_false;
 
 	SDL_RWops* const file = SDL_RWFromFile(filename, "wb");
 
@@ -39,15 +38,15 @@ bool WriteBufferToFile(const char* const filename, const void* const buffer, con
 	{
 		SDL_RWwrite(file, buffer, 1, size);
 		SDL_RWclose(file);
-		success = true;
+		success = cc_true;
 	}
 
 	return success;
 }
 
-bool ReadFileToBuffer(const char* const filename, void* const buffer, const size_t size)
+cc_bool ReadFileToBuffer(const char* const filename, void* const buffer, const size_t size)
 {
-	bool success = false;
+	cc_bool success = cc_false;
 
 	SDL_RWops* const file = SDL_RWFromFile(filename, "rb");
 
@@ -55,7 +54,7 @@ bool ReadFileToBuffer(const char* const filename, void* const buffer, const size
 	{
 		SDL_RWread(file, buffer, 1, size);
 		SDL_RWclose(file);
-		success = true;
+		success = cc_true;
 	}
 
 	return success;

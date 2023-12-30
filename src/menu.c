@@ -1,6 +1,5 @@
 #include "menu.h"
 
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -49,19 +48,23 @@ static void FontCallback_UpdateTexture(const unsigned char* const pixels, const 
 	(void)user_data;
 
 	FontRectToVideoRect(&video_rect, rect);
-	// Note that we skip over the shadow texture here, since we don't need it.
+	/* Note that we skip over the shadow texture here, since we don't need it. */
 	Video_TextureUpdate(&font_texture, pixels + rect->width * rect->height, rect->width, &video_rect);
 }
 
 static void FontCallback_DrawTexture(const Font_Rect* const dst_rect, const Font_Rect* const src_rect, const Font_Colour* const colour, const cc_bool do_shadow, void* const user_data)
 {
+	Video_Colour video_colour;
 	Video_Rect video_src_rect, video_dst_rect;
 
 	const Video_Colour video_colour_black = {0, 0, 0};
-	const Video_Colour video_colour = {colour->red, colour->green, colour->blue};
 
 	(void)user_data;
 	(void)do_shadow;
+
+	video_colour.red = colour->red;
+	video_colour.green = colour->green;
+	video_colour.blue = colour->blue;
 
 	FontRectToVideoRect(&video_src_rect, src_rect);
 	FontRectToVideoRect(&video_dst_rect, dst_rect);
@@ -87,10 +90,10 @@ static void DrawOption(Menu *menu, size_t option, size_t x, size_t y, const Font
 	DrawTextCentered(menu->options[option].value, x, y + DPI_SCALE(10), colour);
 }
 
-bool Menu_Init(const float dpi)
+cc_bool Menu_Init(const float dpi)
 {
 	dpi_scale = dpi;
-	return Font_LoadFromMemory(&font, dejavu, sizeof(dejavu), FONT_WIDTH * dpi, FONT_HEIGHT * dpi, true, 0, &font_callbacks);
+	return Font_LoadFromMemory(&font, dejavu, sizeof(dejavu), FONT_WIDTH * dpi, FONT_HEIGHT * dpi, cc_true, 0, &font_callbacks);
 }
 
 void Menu_Deinit(void)
@@ -106,14 +109,16 @@ void Menu_ChangeDPI(const float dpi)
 
 Menu* Menu_Create(Menu_Callback *callbacks, size_t total_callbacks)
 {
-	Menu *menu = (Menu*)malloc(sizeof(Menu) + total_callbacks * sizeof(Menu_Option));
+	Menu *menu = (Menu*)malloc(sizeof(Menu) + (total_callbacks - 1) * sizeof(Menu_Option));
 
 	if (menu != NULL)
 	{
+		size_t i;
+
 		menu->selected_option = 0;
 		menu->total_options = total_callbacks;
 
-		for (size_t i = 0; i < total_callbacks; ++i)
+		for (i = 0; i < total_callbacks; ++i)
 		{
 			menu->options[i].callback = callbacks[i];
 
@@ -126,7 +131,9 @@ Menu* Menu_Create(Menu_Callback *callbacks, size_t total_callbacks)
 
 void Menu_Destroy(Menu *menu)
 {
-	for (size_t i = 0; i < menu->total_options; ++i)
+	size_t i;
+
+	for (i = 0; i < menu->total_options; ++i)
 		menu->options[i].callback.function(&menu->options[i], MENU_DEINIT, menu->options[i].callback.user_data);
 
 	free(menu);
@@ -134,6 +141,8 @@ void Menu_Destroy(Menu *menu)
 
 void Menu_Update(Menu *menu)
 {
+	size_t i;
+
 	if (retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP].pressed)
 	{
 		if (menu->selected_option == 0)
@@ -149,7 +158,7 @@ void Menu_Update(Menu *menu)
 			++menu->selected_option;
 	}
 
-	for (size_t i = 0; i < menu->total_options; ++i)
+	for (i = 0; i < menu->total_options; ++i)
 	{
 		Menu_CallbackAction action = MENU_UPDATE_NONE;
 
@@ -169,11 +178,18 @@ void Menu_Update(Menu *menu)
 
 void Menu_Draw(Menu *menu)
 {
-	const Font_Colour white = {0xFF, 0xFF, 0xFF};
+	Video_Rect rect;
 
+	const Video_Colour black = {0, 0, 0};
+	const Font_Colour white = {0xFF, 0xFF, 0xFF};
 	const unsigned int background_height = DPI_SCALE(260);
-	const Video_Rect rect = {0, window_height / 2 - background_height / 2, window_width, background_height};
-	Video_ColourFill(&rect, (Video_Colour){0, 0, 0}, 0xA0);
+
+	rect.x = 0;
+	rect.y = window_height / 2 - background_height / 2;
+	rect.width = window_width;
+	rect.height = background_height;
+
+	Video_ColourFill(&rect, black, 0xA0);
 
 	if (menu->total_options == 0)
 	{

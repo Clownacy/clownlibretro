@@ -1,7 +1,8 @@
 #pragma once
 
-#include <stdbool.h>
 #include <stddef.h>
+
+#include "clowncommon/clowncommon.h"
 
 typedef enum Menu_CallbackAction
 {
@@ -37,10 +38,10 @@ typedef struct Menu
 {
 	size_t selected_option;
 	size_t total_options;
-	Menu_Option options[];
+	Menu_Option options[1];
 } Menu;
 
-bool Menu_Init(float dpi);
+cc_bool Menu_Init(float dpi);
 void Menu_Deinit(void);
 void Menu_ChangeDPI(float dpi);
 

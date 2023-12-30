@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdbool.h>
+#include "clowncommon/clowncommon.h"
 
 #include "libretro.h"
 
@@ -8,9 +8,9 @@ typedef struct Retropad
 {
 	struct
 	{
-		bool pressed;
-		bool held;
-		bool raw;
+		cc_bool pressed;
+		cc_bool held;
+		cc_bool raw;
 	} buttons[16];
 } Retropad;
 

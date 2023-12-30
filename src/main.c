@@ -19,9 +19,9 @@ static bool menu_open;
 
 static Menu *menu;
 
-  //////////
- // Main //
-//////////
+/*******
+* Main *
+*******/
 
 static int OptionsMenuCallback(Menu_Option *option, Menu_CallbackAction action, void *user_data)
 {
@@ -64,7 +64,7 @@ static int OptionsMenuCallback(Menu_Option *option, Menu_CallbackAction action, 
 			break;
 	}
 
-	return 0; // TODO
+	return 0; /* TODO */
 }
 
 static void ToggleMenu(void)
@@ -75,16 +75,30 @@ static void ToggleMenu(void)
 	{
 		Variable *variables;
 		size_t total_variables;
+		Menu_Callback *callbacks;
+
 		CoreRunner_GetVariables(&variables, &total_variables);
 
-		Menu_Callback callbacks[total_variables]; // TODO: Get rid of this VLA
-		for (size_t i = 0; i < total_variables; ++i)
-		{
-			callbacks[i].function = OptionsMenuCallback;
-			callbacks[i].user_data = &variables[i];
-		}
+		callbacks = (Menu_Callback*)SDL_malloc(sizeof(Menu_Callback) * total_variables);
 
-		menu = Menu_Create(callbacks, total_variables);
+		if (callbacks == NULL)
+		{
+			fputs("Could not allocate memory for the menu callbacks\n", stderr);
+		}
+		else
+		{
+			size_t i;
+
+			for (i = 0; i < total_variables; ++i)
+			{
+				callbacks[i].function = OptionsMenuCallback;
+				callbacks[i].user_data = &variables[i];
+			}
+
+			menu = Menu_Create(callbacks, total_variables);
+
+			SDL_free(callbacks);
+		}
 	}
 	else
 	{
@@ -108,17 +122,17 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		// Initialise SDL2 video and audio
+		/* Initialise SDL2 video and audio */
 		if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) < 0)
 		{
 			fprintf(stderr, "SDL_Init failed - Error: '%s'\n", SDL_GetError());
 		}
 		else
 		{
-			// Enable high-DPI support on Windows because SDL2 is bad at being a platform abstraction library
+			/* Enable high-DPI support on Windows because SDL2 is bad at being a platform abstraction library */
 			SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
 
-			if (!Video_Init(640, 480)) // TODO: Placeholder
+			if (!Video_Init(640, 480)) /* TODO: Placeholder */
 			{
 				fputs("InitVideo failed\n", stderr);
 			}
@@ -136,13 +150,15 @@ int main(int argc, char **argv)
 				{
 					main_return = EXIT_SUCCESS;
 
-					// Begin the mainloop
+					/* Begin the mainloop */
 					quit = false;
 
 					while (!quit)
 					{
-						// Handle events
 						SDL_Event event;
+						size_t i;
+
+						/* Handle events */
 						while (SDL_PollEvent(&event))
 						{
 							static bool alt_held;
@@ -376,7 +392,7 @@ int main(int argc, char **argv)
 							}
 						}
 
-						for (size_t i = 0; i < sizeof(retropad.buttons) / sizeof(retropad.buttons[0]); ++i)
+						for (i = 0; i < sizeof(retropad.buttons) / sizeof(retropad.buttons[0]); ++i)
 						{
 							retropad.buttons[i].pressed = retropad.buttons[i].raw != retropad.buttons[i].held && retropad.buttons[i].raw;
 							retropad.buttons[i].held = retropad.buttons[i].raw;
@@ -392,7 +408,7 @@ int main(int argc, char **argv)
 								quit = true;
 						}
 
-						// Draw stuff
+						/* Draw stuff */
 						Video_Clear();
 
 						CoreRunner_Draw();
@@ -402,14 +418,16 @@ int main(int argc, char **argv)
 
 						Video_Display();
 
-						// Delay until the next frame
-						static double ticks_next;
-						const Uint32 ticks_now = SDL_GetTicks();
+						{
+							/* Delay until the next frame */
+							static double ticks_next;
+							const Uint32 ticks_now = SDL_GetTicks();
 
-						if (ticks_now < ticks_next)
-							SDL_Delay(ticks_next - ticks_now);
+							if (ticks_now < ticks_next)
+								SDL_Delay(ticks_next - ticks_now);
 
-						ticks_next = SDL_max(ticks_next, ticks_now) + 1000.0 / frames_per_second;
+							ticks_next = SDL_max(ticks_next, ticks_now) + 1000.0 / frames_per_second;
+						}
 					}
 
 					CoreRunner_Deinit();

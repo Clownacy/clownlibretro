@@ -1,7 +1,6 @@
 #include "core_runner.h"
 
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 
@@ -51,27 +50,27 @@ typedef struct Core
 	size_t (*retro_get_memory_size)(unsigned int id);
 } Core;
 
-static bool quit;
+static cc_bool quit;
 
-static bool alternate_layout;
+static cc_bool alternate_layout;
 static CoreRunnerScreenType screen_type;
 
 static double *frames_per_second;
 
 static char *core_path;
 static char *game_path;
-//static char libretro_path[PATH_MAX];
+/*static char libretro_path[PATH_MAX];*/
 static char *pref_path;
 static char *save_file_path;
 
 static Core core;
 static Variable *variables;
 static size_t total_variables;
-static bool variables_modified;
+static cc_bool variables_modified;
 
 static unsigned char *game_buffer;
 
-static bool core_framebuffer_created;
+static cc_bool core_framebuffer_created;
 static Video_Texture core_framebuffer;
 static size_t core_framebuffer_display_width;
 static size_t core_framebuffer_display_height;
@@ -81,71 +80,55 @@ static float core_framebuffer_display_aspect_ratio;
 static Video_Format core_framebuffer_format;
 static size_t size_of_framebuffer_pixel;
 
-static bool audio_stream_created;
+static cc_bool audio_stream_created;
 static Audio_Stream audio_stream;
 static unsigned long audio_stream_sample_rate;
 
-  ////////////////
- // Core stuff //
-////////////////
+/*************
+* Core stuff *
+*************/
 
-static bool LoadCore(Core *core, const char *filename)
+static cc_bool LoadCore(Core *core, const char *filename)
 {
-	bool success = true;
-
 	core->handle = SDL_LoadObject(filename);
 
-	if (core->handle != NULL)
-	{
-		const struct
-		{
-			void **variable;
-			const char *import_name;
-		} imports[] = {
-			{(void**)&core->retro_set_environment,            "retro_set_environment"           },
-			{(void**)&core->retro_set_video_refresh,          "retro_set_video_refresh"         },
-			{(void**)&core->retro_set_audio_sample,           "retro_set_audio_sample"          },
-			{(void**)&core->retro_set_audio_sample_batch,     "retro_set_audio_sample_batch"    },
-			{(void**)&core->retro_set_input_poll,             "retro_set_input_poll"            },
-			{(void**)&core->retro_set_input_state,            "retro_set_input_state"           },
-			{(void**)&core->retro_init,                       "retro_init"                      },
-			{(void**)&core->retro_deinit,                     "retro_deinit"                    },
-			{(void**)&core->retro_api_version,                "retro_api_version"               },
-			{(void**)&core->retro_get_system_info,            "retro_get_system_info"           },
-			{(void**)&core->retro_get_system_av_info,         "retro_get_system_av_info"        },
-			{(void**)&core->retro_set_controller_port_device, "retro_set_controller_port_device"},
-			{(void**)&core->retro_reset,                      "retro_reset"                     },
-			{(void**)&core->retro_run,                        "retro_run"                       },
-			{(void**)&core->retro_serialize_size,             "retro_serialize_size"            },
-			{(void**)&core->retro_serialize,                  "retro_serialize"                 },
-			{(void**)&core->retro_unserialize,                "retro_unserialize"               },
-			{(void**)&core->retro_cheat_reset,                "retro_cheat_reset"               },
-			{(void**)&core->retro_cheat_set,                  "retro_cheat_set"                 },
-			{(void**)&core->retro_load_game,                  "retro_load_game"                 },
-			{(void**)&core->retro_load_game_special,          "retro_load_game_special"         },
-			{(void**)&core->retro_unload_game,                "retro_unload_game"               },
-			{(void**)&core->retro_get_region,                 "retro_get_region"                },
-			{(void**)&core->retro_get_memory_data,            "retro_get_memory_data"           },
-			{(void**)&core->retro_get_memory_size,            "retro_get_memory_size"           }
-		};
+	if (core->handle == NULL)
+		return cc_false;
 
-		for (size_t i = 0; i < SDL_arraysize(imports); ++i)
-		{
-			*imports[i].variable = SDL_LoadFunction(core->handle, imports[i].import_name);
+#define DO_FUNCTION(FUNCTION_NAME)\
+	*(void**)&core->FUNCTION_NAME = SDL_LoadFunction(core->handle, #FUNCTION_NAME);\
+\
+	if (core->FUNCTION_NAME == NULL)\
+		return cc_false
 
-			if (*imports[i].variable == NULL)
-			{
-				success = false;
-				break;
-			}
-		}
-	}
-	else
-	{
-		success = false;
-	}
+	DO_FUNCTION(retro_set_environment);
+	DO_FUNCTION(retro_set_video_refresh);
+	DO_FUNCTION(retro_set_audio_sample);
+	DO_FUNCTION(retro_set_audio_sample_batch);
+	DO_FUNCTION(retro_set_input_poll);
+	DO_FUNCTION(retro_set_input_state);
+	DO_FUNCTION(retro_init);
+	DO_FUNCTION(retro_deinit);
+	DO_FUNCTION(retro_api_version);
+	DO_FUNCTION(retro_get_system_info);
+	DO_FUNCTION(retro_get_system_av_info);
+	DO_FUNCTION(retro_set_controller_port_device);
+	DO_FUNCTION(retro_reset);
+	DO_FUNCTION(retro_run);
+	DO_FUNCTION(retro_serialize_size);
+	DO_FUNCTION(retro_serialize);
+	DO_FUNCTION(retro_unserialize);
+	DO_FUNCTION(retro_cheat_reset);
+	DO_FUNCTION(retro_cheat_set);
+	DO_FUNCTION(retro_load_game);
+	DO_FUNCTION(retro_load_game_special);
+	DO_FUNCTION(retro_unload_game);
+	DO_FUNCTION(retro_get_region);
+	DO_FUNCTION(retro_get_memory_data);
+	DO_FUNCTION(retro_get_memory_size);
+#undef DO_FUNCTION
 
-	return success;
+	return cc_true;
 }
 
 static void UnloadCore(Core *core)
@@ -153,14 +136,16 @@ static void UnloadCore(Core *core)
 	SDL_UnloadObject(core->handle);
 }
 
-  ///////////////////
- // Options stuff //
-///////////////////
+/****************
+* Options stuff *
+****************/
 
 static void LoadOptions(const struct retro_core_option_definition *options)
 {
+	const struct retro_core_option_definition *option;
+
 	total_variables = 0;
-	for (const struct retro_core_option_definition *option = options; option->key != NULL; ++option)
+	for (option = options; option->key != NULL; ++option)
 		++total_variables;
 
 	if (variables == NULL)
@@ -168,12 +153,17 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 
 	if (variables != NULL)
 	{
-		for (size_t i = 0; i < total_variables; ++i)
+		size_t i;
+
+		for (i = 0; i < total_variables; ++i)
 		{
+			const struct retro_core_option_value *value;
+			size_t j;
+
 			variables[i].total_values = 0;
 			variables[i].selected_value = 0;
 
-			for (const struct retro_core_option_value *value = options[i].values; value->value != NULL; ++value)
+			for (value = options[i].values; value->value != NULL; ++value)
 			{
 				if (options[i].default_value != NULL && !SDL_strcmp(value->value, options[i].default_value))
 					variables[i].selected_value = variables[i].total_values;
@@ -185,7 +175,7 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 			variables[i].desc = SDL_strdup(options[i].desc);
 			variables[i].info = options[i].info == NULL ? NULL : SDL_strdup(options[i].info);
 
-			for (size_t j = 0; j < variables[i].total_values; ++j)
+			for (j = 0; j < variables[i].total_values; ++j)
 			{
 				variables[i].values[j].value = SDL_strdup(options[i].values[j].value);
 				variables[i].values[j].label = options[i].values[j].label == NULL ? NULL : SDL_strdup(options[i].values[j].label);
@@ -194,9 +184,9 @@ static void LoadOptions(const struct retro_core_option_definition *options)
 	}
 }
 
-  ///////////////
- // Callbacks //
-///////////////
+/************
+* Callbacks *
+************/
 
 static void Callback_GetCanDupe(bool *can_dupe)
 {
@@ -205,7 +195,7 @@ static void Callback_GetCanDupe(bool *can_dupe)
 
 static void Callback_Shutdown(void)
 {
-	quit = true;
+	quit = cc_true;
 }
 
 static void Callback_GetSystemDirectory(const char **path)
@@ -246,33 +236,40 @@ static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
 
 static void Callback_GetVariable(struct retro_variable *variable)
 {
-	for (size_t i = 0; i < total_variables; ++i)
+	size_t i;
+
+	for (i = 0; i < total_variables; ++i)
 		if (!SDL_strcmp(variables[i].key, variable->key))
 			variable->value = variables[i].values[variables[i].selected_value].value;
 }
 
 static void Callback_SetVariables(const struct retro_variable *variables)
 {
-	// Convert the `retro_variable` array to a `retro_core_option_definition` array
-	size_t total_options = 0;
+	size_t total_options;
+	const struct retro_variable *variable;
+	struct retro_core_option_definition *options;
 
-	for (const struct retro_variable *variable = variables; variable->key != NULL; ++variable)
+	/* Convert the `retro_variable` array to a `retro_core_option_definition` array */
+	total_options = 0;
+
+	for (variable = variables; variable->key != NULL; ++variable)
 		++total_options;
 
-	struct retro_core_option_definition *options = (struct retro_core_option_definition*)SDL_malloc(sizeof(struct retro_core_option_definition) * (total_options + 1));
+	options = (struct retro_core_option_definition*)SDL_malloc(sizeof(struct retro_core_option_definition) * (total_options + 1));
 
 	if (options != NULL)
 	{
-		for (size_t i = 0; i < total_options; ++i)
+		size_t i;
+
+		for (i = 0; i < total_options; ++i)
 		{
 			char *value_string_pointer = SDL_strdup(variables[i].value);
+			size_t total_values = 0;
 
 			options[i].key = variables[i].key;
 			options[i].desc = value_string_pointer;
 			options[i].info = NULL;
 			options[i].default_value = NULL;
-
-			size_t total_values = 0;
 
 			value_string_pointer = SDL_strchr(value_string_pointer, ';');
 
@@ -304,11 +301,11 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 		options[total_options].values[0].label = NULL;
 		options[total_options].default_value = NULL;
 
-		// Process the `retro_core_option_definition` array
+		/* Process the `retro_core_option_definition` array */
 		LoadOptions(options);
 
-		// Now get rid of it
-		for (size_t i = 0; i < total_options; ++i)
+		/* Now get rid of it */
+		for (i = 0; i < total_options; ++i)
 			SDL_free((char*)options[i].desc);
 
 		SDL_free(options);
@@ -333,6 +330,8 @@ static void Callback_GetInputDeviceCapabilities(uint64_t *capabilities)
 
 static void Callback_Log(enum retro_log_level level, const char *fmt, ...)
 {
+	va_list args;
+
 	switch (level)
 	{
 		case RETRO_LOG_DEBUG:
@@ -356,11 +355,8 @@ static void Callback_Log(enum retro_log_level level, const char *fmt, ...)
 			break;
 	}
 
-	va_list args;
 	va_start(args, fmt);
-
 	vfprintf(stderr, fmt, args);
-
 	va_end(args);
 }
 
@@ -423,7 +419,7 @@ static void Callback_SetSystemAVInfo(const struct retro_system_av_info *system_a
 
 static void Callback_GetCoreOptionsVersion(unsigned int *version)
 {
-	*version = 1; // TODO try this with 0
+	*version = 1; /* TODO try this with 0 */
 }
 
 static void Callback_SetCoreOptions(const struct retro_core_option_definition *options)
@@ -438,7 +434,7 @@ static void Callback_SetCoreOptionsIntl(const struct retro_core_options_intl *op
 
 static void Callback_GetInputMaxUsers(unsigned int *max_users)
 {
-	*max_users = 1; // Hardcoded for now
+	*max_users = 1; /* Hardcoded for now */
 }
 
 static bool Callback_Environment(unsigned int cmd, void *data)
@@ -530,11 +526,16 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 {
 	if (data != NULL)
 	{
+		Video_Rect rect;
+		size_t destination_pitch;
+
 		const unsigned char *source_pixels = (const unsigned char*)data;
 		unsigned char *destination_pixels;
 
-		Video_Rect rect = {0, 0, width, height};
-		size_t destination_pitch;
+		rect.x = 0;
+		rect.y = 0;
+		rect.width = width;
+		rect.height = height;
 
 		core_framebuffer_display_width = width;
 		core_framebuffer_display_height = height;
@@ -544,7 +545,9 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 
 		if (Video_TextureLock(&core_framebuffer, &rect, &destination_pixels, &destination_pitch))
 		{
-			for (unsigned int y = 0; y < height; ++y)
+			unsigned int y;
+
+			for (y = 0; y < height; ++y)
 				SDL_memcpy(&destination_pixels[destination_pitch * y], &source_pixels[pitch * y], width * size_of_framebuffer_pixel);
 
 			Video_TextureUnlock(&core_framebuffer);
@@ -564,15 +567,17 @@ static void Callback_AudioSample(int16_t left, int16_t right)
 {
 	if (audio_stream_created)
 	{
-		const int16_t buffer[2] = {left, right};
+		int16_t buffer[2];
 
+		buffer[0] = left;
+		buffer[1] = right;
 		Audio_StreamPushFrames(&audio_stream, buffer, 1);
 	}
 }
 
 static void Callback_InputPoll(void)
 {
-	// This function doesn't really suit SDL2
+	/* This function doesn't really suit SDL2 */
 }
 
 static int16_t Callback_InputState(unsigned int port, unsigned int device, unsigned int index, unsigned int id)
@@ -607,34 +612,40 @@ static int16_t Callback_InputState(unsigned int port, unsigned int device, unsig
 	return 0;
 }
 
-  //////////
- // Main //
-//////////
+/*******
+* Main *
+*******/
 
-bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_frames_per_second)
+cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_frames_per_second)
 {
+	const char *forward_slash;
+#ifdef _WIN32
+	const char *backward_slash;
+#endif
+	const char *game_filename;
+
 	frames_per_second = _frames_per_second;
 
-	// Calculate some paths which will be needed later
+	/* Calculate some paths which will be needed later */
 	core_path = SDL_strdup(_core_path);
 	game_path = SDL_strdup(_game_path);
 
-	// TODO: For now, we're just assuming that the user passed an absolute path
-//	if (realpath(core_path, libretro_path) == NULL)
-//		fputs("realpath failed\n", stderr);
+	/* TODO: For now, we're just assuming that the user passed an absolute path */
+/*	if (realpath(core_path, libretro_path) == NULL)
+		fputs("realpath failed\n", stderr);*/
 
 	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
-	// If we cannot get the pref path, just use the working directory
+	/* If we cannot get the pref path, just use the working directory */
 	if (pref_path == NULL)
 		pref_path = SDL_strdup("./");
 
-	// Extract the file name from the file path
-	const char* const forward_slash = SDL_strrchr(game_path, '/');
+	/* Extract the file name from the file path */
+	forward_slash = SDL_strrchr(game_path, '/');
 #ifdef _WIN32
-	const char* const backward_slash = SDL_strrchr(game_path, '\\');
+	backward_slash = SDL_strrchr(game_path, '\\');
 #endif
-	const char* const game_filename =
+	game_filename =
 #ifdef _WIN32
 		forward_slash != NULL && backward_slash != NULL ? SDL_max(forward_slash, backward_slash) + 1 : backward_slash != NULL ? backward_slash + 1 :
 #endif
@@ -642,7 +653,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 	SDL_asprintf(&save_file_path, "%s/%s.sav", pref_path, game_filename);
 
-	// Load the core, set some callbacks, and initialise it
+	/* Load the core, set some callbacks, and initialise it */
 	if (!LoadCore(&core, core_path))
 	{
 		fputs("Could not load core\n", stderr);
@@ -655,14 +666,18 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 		}
 		else
 		{
-			// Set default pixel format
+			struct retro_system_info system_info;
+			struct retro_game_info game_info;
+			bool game_loaded;
+
+			/* Set default pixel format */
 			SetPixelFormat(RETRO_PIXEL_FORMAT_0RGB1555);
 
-			// Registers callbacks with the libretro core
+			/* Registers callbacks with the libretro core */
 			core.retro_set_environment(Callback_Environment);
 
-			// Mesen requires that this be called before retro_set_video_refresh.
-			// TODO: Tell Meson's devs to fix their core or tell libretro's devs to fix their API.
+			/* Mesen requires that this be called before retro_set_video_refresh. */
+			/* TODO: Tell Meson's devs to fix their core or tell libretro's devs to fix their API. */
 			core.retro_init();
 
 			core.retro_set_video_refresh(Callback_VideoRefresh);
@@ -671,29 +686,31 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 			core.retro_set_input_poll(Callback_InputPoll);
 			core.retro_set_input_state(Callback_InputState);
 
-			// Grab some info for later
-			struct retro_system_info system_info;
+			/* Grab some info for later */
 			core.retro_get_system_info(&system_info);
 
-			// Load the game (TODO: handle cores that don't need supplied game data)
-			// TODO: Move this to its own function or something
-			struct retro_game_info game_info;
+			/* Load the game (TODO: handle cores that don't need supplied game data) */
+			/* TODO: Move this to its own function or something */
 			game_info.path = game_path;
 			game_info.data = NULL;
 			game_info.size = 0;
 			game_info.meta = NULL;
 
-			bool game_loaded = false;
+			game_loaded = false;
 
+			{
 #ifdef ENABLE_LIBZIP
-			// If the file is a zip archive, then try extracting a useable file.
-			// If it isn't, just assume it's a plain ROM and load it directly.
-			zip_t *zip = zip_open(game_path, ZIP_RDONLY, NULL);
+			/* If the file is a zip archive, then try extracting a useable file.
+			   If it isn't, just assume it's a plain ROM and load it directly. */
+			zip_t* const zip = zip_open(game_path, ZIP_RDONLY, NULL);
 
 			if (zip != NULL)
 			{
+				zip_int64_t i;
+
 				const zip_int64_t total_files = zip_get_num_entries(zip, 0);
-				for (zip_int64_t i = 0; i < total_files; ++i)
+
+				for (i = 0; i < total_files; ++i)
 				{
 					zip_stat_t stat;
 					if (zip_stat_index(zip, i, 0, &stat) == 0 && stat.valid & ZIP_STAT_SIZE)
@@ -713,8 +730,8 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 
 								if (system_info.need_fullpath)
 								{
-									// Mesen is weird and demands a file path even for zipped files,
-									// so extract the ROM to a proper file and give Meson the path to it.
+									/* Mesen is weird and demands a file path even for zipped files,
+									   so extract the ROM to a proper file and give Meson the path to it. */
 									char *temporary_filename;
 
 									SDL_asprintf(&temporary_filename, "%stemp", pref_path);
@@ -736,11 +753,11 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 											SDL_RWwrite(file, game_buffer, 1, game_info.size);
 											SDL_RWclose(file);
 
-											// We no longer need the buffer, so free it.
+											/* We no longer need the buffer, so free it. */
 											SDL_free(game_buffer);
 											game_buffer = NULL;
 
-											// Finally, load the extracted ROM file.
+											/* Finally, load the extracted ROM file. */
 											game_info.path = temporary_filename;
 											game_loaded = core.retro_load_game(&game_info);
 										}
@@ -750,7 +767,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 								}
 								else
 								{
-									// The libretro core is sane, so we can just give it the memory buffer.
+									/* The libretro core is sane, so we can just give it the memory buffer. */
 									game_loaded = core.retro_load_game(&game_info);
 								}
 
@@ -790,6 +807,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 					}
 				}
 			}
+			}
 
 			if (!game_loaded)
 			{
@@ -797,8 +815,9 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 			}
 			else
 			{
-				// Grab more info that will come in handy later
+				/* Grab more info that will come in handy later */
 				struct retro_system_av_info system_av_info;
+
 				core.retro_get_system_av_info(&system_av_info);
 
 				if (!SetSystemAVInfo(&system_av_info))
@@ -807,7 +826,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 				}
 				else
 				{
-					// Read save data from file
+					/* Read save data from file */
 					void* const save_ram = core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
 					const size_t save_ram_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
 
@@ -819,7 +838,7 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 							fputs("Save file could not be read\n", stderr);
 					}
 
-					return true;
+					return cc_true;
 				}
 
 				core.retro_unload_game();
@@ -838,17 +857,19 @@ bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_fr
 	SDL_free(pref_path);
 	SDL_free(save_file_path);
 
-	return false;
+	return cc_false;
 }
 
 void CoreRunner_Deinit(void)
 {
+	size_t i;
+
 	void* const save_ram = core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
 	const size_t save_ram_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
 
 	if (save_ram != NULL && save_ram_size != 0)
 	{
-		// Write save data to file
+		/* Write save data to file */
 		if (WriteBufferToFile(save_file_path, save_ram, save_ram_size))
 			fputs("Save file written\n", stderr);
 		else
@@ -873,13 +894,15 @@ void CoreRunner_Deinit(void)
 	SDL_free(pref_path);
 	SDL_free(save_file_path);
 
-	for (size_t i = 0; i < total_variables; ++i)
+	for (i = 0; i < total_variables; ++i)
 	{
+		size_t j;
+
 		SDL_free(variables[i].key);
 		SDL_free(variables[i].desc);
 		SDL_free(variables[i].info);
 
-		for (size_t j = 0; j < variables[i].total_values; ++j)
+		for (j = 0; j < variables[i].total_values; ++j)
 		{
 			SDL_free(variables[i].values[j].value);
 			SDL_free(variables[i].values[j].label);
@@ -889,9 +912,9 @@ void CoreRunner_Deinit(void)
 	SDL_free(variables);
 }
 
-bool CoreRunner_Update(void)
+cc_bool CoreRunner_Update(void)
 {
-	// Update the core
+	/* Update the core */
 	core.retro_run();
 
 	return !quit;
@@ -899,10 +922,13 @@ bool CoreRunner_Update(void)
 
 void CoreRunner_Draw(void)
 {
-	const size_t upscale_factor = MAX(1, MIN(window_width / core_framebuffer_display_width, window_height / core_framebuffer_display_height));
-
 	size_t dst_width;
 	size_t dst_height;
+	Video_Rect src_rect;
+	Video_Rect dst_rect;
+
+	const size_t upscale_factor = MAX(1, MIN(window_width / core_framebuffer_display_width, window_height / core_framebuffer_display_height));
+	const Video_Colour white = {0xFF, 0xFF, 0xFF};
 
 	if (screen_type == CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT || screen_type == CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT_WITH_SCANLINES)
 	{
@@ -923,14 +949,25 @@ void CoreRunner_Draw(void)
 		}
 	}
 
-	const Video_Rect src_rect = {0, 0, core_framebuffer_display_width, core_framebuffer_display_height};
-	const Video_Rect dst_rect = {(window_width - dst_width) / 2, (window_height - dst_height) / 2, dst_width, dst_height};
+	src_rect.x = 0;
+	src_rect.y = 0;
+	src_rect.width = core_framebuffer_display_width;
+	src_rect.height = core_framebuffer_display_height;
 
-	Video_TextureDraw(&core_framebuffer, &dst_rect, &src_rect, (Video_Colour){0xFF, 0xFF, 0xFF});
+	dst_rect.x = (window_width - dst_width) / 2;
+	dst_rect.y = (window_height - dst_height) / 2;
+	dst_rect.width = dst_width;
+	dst_rect.height = dst_height;
+
+	Video_TextureDraw(&core_framebuffer, &dst_rect, &src_rect, white);
 
 	if (screen_type == CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT_WITH_SCANLINES)
-		for (size_t i = 0; i < core_framebuffer_display_height; ++i)
+	{
+		size_t i;
+
+		for (i = 0; i < core_framebuffer_display_height; ++i)
 			Video_DrawLine(dst_rect.x, dst_rect.y + i * upscale_factor, dst_rect.x + dst_rect.width, dst_rect.y + i * upscale_factor);
+	}
 }
 
 void CoreRunner_GetVariables(Variable **variables_pointer, size_t *total_variables_pointer)
@@ -941,10 +978,10 @@ void CoreRunner_GetVariables(Variable **variables_pointer, size_t *total_variabl
 
 void CoreRunner_VariablesModified(void)
 {
-	variables_modified = true;
+	variables_modified = cc_true;
 }
 
-void CoreRunner_SetAlternateButtonLayout(bool enable)
+void CoreRunner_SetAlternateButtonLayout(cc_bool enable)
 {
 	alternate_layout = enable;
 }
