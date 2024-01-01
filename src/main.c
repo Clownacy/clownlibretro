@@ -6,6 +6,7 @@
 
 #include "audio.h"
 #include "core_runner.h"
+#include "error.h"
 #include "input.h"
 #include "menu.h"
 #include "video.h"
@@ -83,7 +84,7 @@ static void ToggleMenu(void)
 
 		if (callbacks == NULL)
 		{
-			fputs("Could not allocate memory for the menu callbacks\n", stderr);
+			PrintError("Could not allocate memory for the menu callbacks");
 		}
 		else
 		{
@@ -114,18 +115,18 @@ int main(int argc, char **argv)
 
 	if (argc < 2)
 	{
-		fputs("Core path not specified\n", stderr);
+		PrintError("Core path not specified");
 	}
 	else if (argc < 3)
 	{
-		fputs("Game path not specified\n", stderr);
+		PrintError("Game path not specified");
 	}
 	else
 	{
 		/* Initialise SDL2 video and audio */
 		if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER) < 0)
 		{
-			fprintf(stderr, "SDL_Init failed - Error: '%s'\n", SDL_GetError());
+			PrintError("SDL_Init failed - Error: '%s'", SDL_GetError());
 		}
 		else
 		{
@@ -134,7 +135,7 @@ int main(int argc, char **argv)
 
 			if (!Video_Init(640, 480)) /* TODO: Placeholder */
 			{
-				fputs("InitVideo failed\n", stderr);
+				PrintError("InitVideo failed");
 			}
 			else
 			{
@@ -144,7 +145,7 @@ int main(int argc, char **argv)
 
 				if (!CoreRunner_Init(argv[1], argv[2], &frames_per_second))
 				{
-					fputs("CoreRunner_Init failed\n", stderr);
+					PrintError("CoreRunner_Init failed");
 				}
 				else
 				{

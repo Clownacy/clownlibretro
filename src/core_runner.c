@@ -11,6 +11,7 @@
 #include "SDL.h"
 
 #include "audio.h"
+#include "error.h"
 #include "file.h"
 #include "input.h"
 #include "libretro.h"
@@ -332,31 +333,28 @@ static void Callback_Log(enum retro_log_level level, const char *fmt, ...)
 {
 	va_list args;
 
+	va_start(args, fmt);
+
 	switch (level)
 	{
+		default:
 		case RETRO_LOG_DEBUG:
-			fputs("Debug: ", stderr);
+			PrintDebugV(fmt, args);
 			break;
 
 		case RETRO_LOG_INFO:
-			fputs("Info: ", stderr);
+			PrintInfoV(fmt, args);
 			break;
 
 		case RETRO_LOG_WARN:
-			fputs("Warning: ", stderr);
+			PrintWarningV(fmt, args);
 			break;
 
 		case RETRO_LOG_ERROR:
-			fputs("Error: ", stderr);
-			break;
-
-		default:
-			fputs("Unknown log type: ", stderr);
+			PrintErrorV(fmt, args);
 			break;
 	}
 
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
 	va_end(args);
 }
 
@@ -632,7 +630,7 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 
 	/* TODO: For now, we're just assuming that the user passed an absolute path */
 /*	if (realpath(core_path, libretro_path) == NULL)
-		fputs("realpath failed\n", stderr);*/
+		PrintError("realpath failed");*/
 
 	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
@@ -656,13 +654,13 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 	/* Load the core, set some callbacks, and initialise it */
 	if (!LoadCore(&core, core_path))
 	{
-		fputs("Could not load core\n", stderr);
+		PrintError("Could not load core");
 	}
 	else
 	{
 		if (core.retro_api_version() != RETRO_API_VERSION)
 		{
-			fputs("Core targets an incompatible API\n", stderr);
+			PrintError("Core targets an incompatible API");
 		}
 		else
 		{
@@ -738,7 +736,7 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 
 									if (temporary_filename == NULL)
 									{
-										fputs("Could not obtain temporary filename\n", stderr);
+										PrintError("Could not obtain temporary filename");
 									}
 									else
 									{
@@ -746,7 +744,7 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 
 										if (file == NULL)
 										{
-											fprintf(stderr, "Could not open temporary file '%s' for writing\n", temporary_filename);
+											PrintError("Could not open temporary file '%s' for writing", temporary_filename);
 										}
 										else
 										{
@@ -803,7 +801,7 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 					}
 					else
 					{
-						fprintf(stderr, "Could not open file '%s'\n", game_path);
+						PrintError("Could not open file '%s'", game_path);
 					}
 				}
 			}
@@ -811,7 +809,7 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 
 			if (!game_loaded)
 			{
-				fputs("retro_load_game failed\n", stderr);
+				PrintError("retro_load_game failed");
 			}
 			else
 			{
@@ -822,7 +820,7 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 
 				if (!SetSystemAVInfo(&system_av_info))
 				{
-					fputs("Failed to create core framebuffer texture\n", stderr);
+					PrintError("Failed to create core framebuffer texture");
 				}
 				else
 				{
@@ -833,9 +831,9 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 					if (save_ram != NULL && save_ram_size != 0)
 					{
 						if (ReadFileToBuffer(save_file_path, save_ram, save_ram_size))
-							fputs("Save file read\n", stderr);
+							PrintError("Save file read");
 						else
-							fputs("Save file could not be read\n", stderr);
+							PrintError("Save file could not be read");
 					}
 
 					return cc_true;
@@ -871,9 +869,9 @@ void CoreRunner_Deinit(void)
 	{
 		/* Write save data to file */
 		if (WriteBufferToFile(save_file_path, save_ram, save_ram_size))
-			fputs("Save file written\n", stderr);
+			PrintError("Save file written");
 		else
-			fputs("Save file could not be written\n", stderr);
+			PrintError("Save file could not be written");
 	}
 
 	if (audio_stream_created)

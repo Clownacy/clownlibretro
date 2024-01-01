@@ -9,6 +9,8 @@ add_executable(clownlibretro
 	"src/audio.h"
 	"src/core_runner.c"
 	"src/core_runner.h"
+	"src/error.c"
+	"src/error.h"
 	"src/file.c"
 	"src/file.h"
 	"src/font.c"
