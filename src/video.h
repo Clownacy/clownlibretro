@@ -2,38 +2,14 @@
 
 #include <stddef.h>
 
-#include "SDL.h"
-
 #include "clowncommon/clowncommon.h"
 
-typedef struct Video_Colour
-{
-	unsigned char red;
-	unsigned char green;
-	unsigned char blue;
-} Video_Colour;
+#include "renderer.h"
 
-typedef struct Video_Rect
-{
-	size_t x;
-	size_t y;
-	size_t width;
-	size_t height;
-} Video_Rect;
-
-typedef enum Video_Format
-{
-	VIDEO_FORMAT_0RGB1555 = 0,
-	VIDEO_FORMAT_XRGB8888 = 1,
-	VIDEO_FORMAT_RGB565 = 2,
-	VIDEO_FORMAT_A8 = 3
-} Video_Format;
-
-typedef struct Video_Texture
-{
-	SDL_Texture *sdl_texture;
-	Video_Format format;
-} Video_Texture;
+typedef Renderer_Colour Video_Colour;
+typedef Renderer_Rect Video_Rect;
+typedef Renderer_Format Video_Format;
+typedef Renderer_Texture Video_Texture;
 
 extern size_t window_width;
 extern size_t window_height;
@@ -46,12 +22,14 @@ void Video_SetFullscreen(cc_bool fullscreen);
 void Video_WindowResized(void);
 float Video_GetDPIScale(void);
 
-cc_bool Video_TextureCreate(Video_Texture *texture, size_t width, size_t height, Video_Format format, cc_bool streaming);
-void Video_TextureDestroy(Video_Texture *texture);
-void Video_TextureUpdate(Video_Texture *texture, const void *pixels, size_t pitch, const Video_Rect *rect);
-cc_bool Video_TextureLock(Video_Texture *texture, const Video_Rect *rect, unsigned char **buffer, size_t *pitch);
-void Video_TextureUnlock(Video_Texture *texture);
-void Video_TextureDraw(Video_Texture *texture, const Video_Rect *dst_rect, const Video_Rect *src_rect, Video_Colour colour);
+#define Video_Clear Renderer_Clear
+#define Video_Display Renderer_Display
 
-void Video_ColourFill(const Video_Rect *rect, Video_Colour colour, unsigned char);
-void Video_DrawLine(size_t x1, size_t y1, size_t x2, size_t y2);
+#define Video_TextureCreate Renderer_TextureCreate
+#define Video_TextureDestroy Renderer_TextureDestroy
+#define Video_TextureUpdate Renderer_TextureUpdate
+#define Video_TextureLock Renderer_TextureLock
+#define Video_TextureUnlock Renderer_TextureUnlock
+#define Video_TextureDraw Renderer_TextureDraw
+#define Video_ColourFill Renderer_ColourFill
+#define Video_DrawLine Renderer_DrawLine

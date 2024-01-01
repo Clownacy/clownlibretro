@@ -49,7 +49,7 @@ static void FontCallback_UpdateTexture(const unsigned char* const pixels, const 
 
 	FontRectToVideoRect(&video_rect, rect);
 	/* Note that we skip over the shadow texture here, since we don't need it. */
-	Video_TextureUpdate(&font_texture, pixels + rect->width * rect->height, rect->width, &video_rect);
+	Video_TextureUpdate(&font_texture, pixels + rect->width * rect->height, &video_rect);
 }
 
 static void FontCallback_DrawTexture(const Font_Rect* const dst_rect, const Font_Rect* const src_rect, const Font_Colour* const colour, const cc_bool do_shadow, void* const user_data)

@@ -1,15 +1,18 @@
 #include "error.h"
 
+#include <GLES2/gl2.h>
+
 #include <stdio.h>
 
 #define DO_PRINTER(CATEGORY)\
-void Print##CATEGORY##CATEGORYV(const char* const format, va_list args)\
+void Print##CATEGORY##V(const char* const format, va_list args)\
 {\
 	fputs(#CATEGORY ": ", stderr);\
 	vfprintf(stderr, format, args);\
+	fputc('\n', stderr);\
 }\
 \
-void Print##CATEGORY##(const char* const format, ...)\
+void Print##CATEGORY(const char* const format, ...)\
 {\
 	va_list args;\
 	va_start(args, format);\

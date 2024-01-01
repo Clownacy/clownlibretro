@@ -21,6 +21,8 @@ add_executable(clownlibretro
 	"src/main.c"
 	"src/menu.c"
 	"src/menu.h"
+	"src/renderer.c"
+	"src/renderer.h"
 	"src/video.c"
 	"src/video.h"
 )
@@ -48,4 +50,11 @@ endif()
 find_library(LIBM m)
 if(LIBM)
 	target_link_libraries(clownlibretro PRIVATE ${LIBM})
+endif()
+
+find_package(OpenGL)
+
+if(TARGET OpenGL::GLES2)
+	target_link_libraries(clownlibretro PRIVATE OpenGL::GLES2)
+	target_compile_definitions(clownlibretro PRIVATE RENDERER_OPENGLES2)
 endif()
