@@ -24,7 +24,60 @@ static SDL_GLContext context;
 
 static Renderer_Texture colour_fill_texture;
 
+static GLuint program;
+#ifndef RENDERER_OPENGLES2
+static GLuint vertex_array_object;
+#endif
 static GLuint vertex_buffer_object;
+static GLint previous_vertex_buffer_object;
+
+#if 0
+static void CheckError(void)
+{
+	switch (glGetError())
+	{
+		case GL_NO_ERROR:
+			PrintDebug("GL_NO_ERROR");
+			break;
+
+		case GL_INVALID_ENUM:
+			PrintDebug("GL_INVALID_ENUM");
+			break;
+
+		case GL_INVALID_VALUE:
+			PrintDebug("GL_INVALID_VALUE");
+			break;
+
+		case GL_INVALID_OPERATION:
+			PrintDebug("GL_INVALID_OPERATION");
+			break;
+
+		case GL_INVALID_FRAMEBUFFER_OPERATION:
+			PrintDebug("GL_INVALID_FRAMEBUFFER_OPERATION");
+			break;
+
+		case GL_OUT_OF_MEMORY:
+			PrintDebug("GL_OUT_OF_MEMORY");
+			break;
+	}
+}
+#endif
+
+#ifndef RENDERER_OPENGLES2
+static void APIENTRY DebugCallback(GLenum source,
+            GLenum type,
+            GLuint id,
+            GLenum severity,
+            GLsizei length,
+            const GLchar *message,
+            const void *userParam)
+{
+	if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+		PrintDebug("%s", message);
+	else
+		PrintWarning("%s", message);
+}
+#endif
 
 static GLuint CompileShader(const GLenum shader_type, const GLchar* const shader_source)
 {
@@ -116,9 +169,20 @@ static GLuint CompileProgram(const GLchar* const vertex_shader_source, const GLc
 
 SDL_Window* Renderer_Init(const char* const window_name, const size_t window_width, const size_t window_height, const Uint32 window_flags)
 {
+#ifdef RENDERER_OPENGLES2
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG
+#ifndef NDEBUG
+		| SDL_GL_CONTEXT_DEBUG_FLAG
+#endif
+		);
+#endif
 
 	window = SDL_CreateWindow(window_name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, window_flags | SDL_WINDOW_OPENGL);
 
@@ -136,6 +200,7 @@ SDL_Window* Renderer_Init(const char* const window_name, const size_t window_wid
 		}
 		else
 		{
+			/* TODO: Make these compatible with Desktop OpenGL. */
 			static const GLchar vertex_shader_source[] = " \
 				#version 100\n \
 				attribute vec2 input_vertex_coordinates; \
@@ -163,7 +228,13 @@ SDL_Window* Renderer_Init(const char* const window_name, const size_t window_wid
 				} \
 			";
 
-			const GLuint program = CompileProgram(vertex_shader_source, fragment_shader_source);
+		#ifndef RENDERER_OPENGLES2
+			gladLoadGLLoader(SDL_GL_GetProcAddress);
+			glEnable(GL_DEBUG_OUTPUT);
+			glDebugMessageCallback(DebugCallback, NULL);
+		#endif
+
+			program = CompileProgram(vertex_shader_source, fragment_shader_source);
 
 			if (program == 0)
 			{
@@ -171,21 +242,11 @@ SDL_Window* Renderer_Init(const char* const window_name, const size_t window_wid
 			}
 			else
 			{
-				glUseProgram(program);
-				glDeleteProgram(program);
+			#ifndef RENDERER_OPENGLES2
+				glGenVertexArrays(1, &vertex_array_object);
+			#endif
 
 				glGenBuffers(1, &vertex_buffer_object);
-				glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
-
-				glEnableVertexAttribArray(VERTEX_ATTRIBUTE_POSITION);
-				glVertexAttribPointer(VERTEX_ATTRIBUTE_POSITION, CC_COUNT_OF(((Vertex*)0)->position), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-				glEnableVertexAttribArray(VERTEX_ATTRIBUTE_TEXTURE_COORDINATES);
-				glVertexAttribPointer(VERTEX_ATTRIBUTE_TEXTURE_COORDINATES, CC_COUNT_OF(((Vertex*)0)->texture_coordinates), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture_coordinates));
-				glEnableVertexAttribArray(VERTEX_ATTRIBUTE_COLOUR);
-				glVertexAttribPointer(VERTEX_ATTRIBUTE_COLOUR, CC_COUNT_OF(((Vertex*)0)->colour), GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)offsetof(Vertex, colour));
-
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 				if (!Renderer_TextureCreate(&colour_fill_texture, 1, 1, VIDEO_FORMAT_RGB565, cc_false))
 				{
@@ -204,6 +265,10 @@ SDL_Window* Renderer_Init(const char* const window_name, const size_t window_wid
 				}
 
 				glDeleteBuffers(1, &vertex_buffer_object);
+			#ifndef RENDERER_OPENGLES2
+				glDeleteVertexArrays(1, &vertex_array_object);
+			#endif
+				glDeleteProgram(program);
 			}
 
 			SDL_GL_DeleteContext(context);
@@ -220,24 +285,58 @@ void Renderer_Deinit(void)
 	Renderer_TextureDestroy(&colour_fill_texture);
 
 	glDeleteBuffers(1, &vertex_buffer_object);
-	glUseProgram(0);
+#ifndef RENDERER_OPENGLES2
+	glDeleteVertexArrays(1, &vertex_array_object);
+#endif
+	glDeleteProgram(program);
 
 	SDL_GL_DeleteContext(context);
 }
 
 void Renderer_Clear(void)
 {
-	glClear(GL_COLOR_BUFFER_BIT);
+	/* Reset a bunch of state that the libretro core probably screwed with. */
+	glViewport(0, 0, window_width, window_height);
+
+	glActiveTexture(GL_TEXTURE0);
+
+	glUseProgram(program);
+
+#ifndef RENDERER_OPENGLES2
+	glBindVertexArray(vertex_array_object);
+#endif
+	/* For some reason, we need to preserve the current-bound vertex buffer object for GLideN64 to work. */
+	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &previous_vertex_buffer_object);
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
+	glEnableVertexAttribArray(VERTEX_ATTRIBUTE_POSITION);
+	glVertexAttribPointer(VERTEX_ATTRIBUTE_POSITION, CC_COUNT_OF(((Vertex*)0)->position), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+	glEnableVertexAttribArray(VERTEX_ATTRIBUTE_TEXTURE_COORDINATES);
+	glVertexAttribPointer(VERTEX_ATTRIBUTE_TEXTURE_COORDINATES, CC_COUNT_OF(((Vertex*)0)->texture_coordinates), GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture_coordinates));
+	glEnableVertexAttribArray(VERTEX_ATTRIBUTE_COLOUR);
+	glVertexAttribPointer(VERTEX_ATTRIBUTE_COLOUR, CC_COUNT_OF(((Vertex*)0)->colour), GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)offsetof(Vertex, colour));
+
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_SCISSOR_TEST);
+	glDisable(GL_STENCIL_TEST);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	/* Finally, clear. */
+	glClearColor(0, 0, 0, 0xFF);
+	glClear(GL_COLOR_BUFFER_BIT /*| GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT*/);
 }
 
 void Renderer_Display(void)
 {
 	SDL_GL_SwapWindow(window);
+	glBindBuffer(GL_ARRAY_BUFFER, previous_vertex_buffer_object);
 }
 
 void Renderer_WindowResized(const int width, const int height)
 {
-	glViewport(0, 0, width, height);
 	window_width = width;
 	window_height = height;
 }
@@ -252,7 +351,7 @@ static unsigned int BytesPerPixel(const Renderer_Format format)
 		format == VIDEO_FORMAT_0RGB1555 ? 2 :
 		format == VIDEO_FORMAT_XRGB8888 ? 4 :
 		format == VIDEO_FORMAT_RGB565 ? 2 :
-		/*format == VIDEO_FORMAT_A8 ?*/ 1;
+		/*format == VIDEO_FORMAT_A8 ?*/ 2;
 }
 
 static GLenum TextureFormat(const Renderer_Format format)
@@ -261,7 +360,11 @@ static GLenum TextureFormat(const Renderer_Format format)
 		format == VIDEO_FORMAT_0RGB1555 ? GL_RGBA :
 		format == VIDEO_FORMAT_XRGB8888 ? GL_RGBA :
 		format == VIDEO_FORMAT_RGB565 ? GL_RGB :
+#ifdef RENDERER_OPENGLES2
 		/*format == VIDEO_FORMAT_A8 ?*/ GL_LUMINANCE_ALPHA;
+#else
+		/*format == VIDEO_FORMAT_A8 ?*/ GL_RG;/* TODO: GL_LUMINANCE_ALPHA; */
+#endif
 }
 
 static GLenum TextureType(const Renderer_Format format)
@@ -337,7 +440,7 @@ void Renderer_TextureUpdate(Renderer_Texture *texture, const void *pixels, const
 				}
 			}
 
-			glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->width, rect->height, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, rgba_pixels);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->width, rect->height, TextureFormat(texture->format), TextureType(texture->format), rgba_pixels);
 
 			SDL_free(rgba_pixels);
 		}
@@ -388,7 +491,11 @@ static void Renderer_TextureDrawAlpha(Renderer_Texture *texture, const Renderer_
 
 #undef DO_VERTEX
 
-	/*glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);*/
+	if (texture->format == VIDEO_FORMAT_A8)
+		glEnable(GL_BLEND);
+	else
+		glDisable(GL_BLEND);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
 	glBindTexture(GL_TEXTURE_2D, texture->id);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, CC_COUNT_OF(vertices));
@@ -421,4 +528,89 @@ void Renderer_DrawLine(size_t x1, size_t y1, size_t x2, size_t y2)
 	rect.height = 1;
 
 	Renderer_ColourFill(&rect, black, 0xFF);
+}
+
+/********************
+* Framebuffer stuff *
+********************/
+
+cc_bool Renderer_FramebufferCreateSoftware(Renderer_Framebuffer* const framebuffer, const size_t width, const size_t height, const Renderer_Format format, const cc_bool streaming)
+{
+	framebuffer->id = 0;
+	framebuffer->depth_renderbuffer_id = 0;
+	framebuffer->stencil_renderbuffer_id = 0;
+
+	return Renderer_TextureCreate(&framebuffer->texture, width, height, format, streaming);
+}
+
+cc_bool Renderer_FramebufferCreateHardware(Renderer_Framebuffer* const framebuffer, const size_t width, const size_t height, const cc_bool depth, const cc_bool stencil)
+{
+	PrintDebug("width %u height %u", (unsigned int)width, (unsigned int)height);
+	if (Renderer_TextureCreate(&framebuffer->texture, width, height, VIDEO_FORMAT_XRGB8888, cc_false))
+	{
+		framebuffer->depth_renderbuffer_id = 0;
+		framebuffer->stencil_renderbuffer_id = 0;
+
+		glGenFramebuffers(1, &framebuffer->id);
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->id);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framebuffer->texture.id, 0);
+
+		if (depth)
+		{
+		#ifdef RENDERER_OPENGLES2
+			/* TODO: This is an extension. Hope and pray. */
+			#define DEPTH24_STENCIL8_OES 0x88F0
+		#else
+			#define DEPTH24_STENCIL8_OES GL_DEPTH24_STENCIL8
+		#endif
+
+			glGenRenderbuffers(1, &framebuffer->depth_renderbuffer_id);
+			glBindRenderbuffer(GL_RENDERBUFFER, framebuffer->depth_renderbuffer_id);
+			glRenderbufferStorage(GL_RENDERBUFFER, stencil ? DEPTH24_STENCIL8_OES : GL_DEPTH_COMPONENT16, width, height);
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, framebuffer->depth_renderbuffer_id);
+		}
+
+		/* TODO: Get rid of this. */
+		switch (glCheckFramebufferStatus(GL_FRAMEBUFFER))
+		{
+			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+				PrintDebug("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+				break;
+
+			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+				PrintDebug("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");
+				break;
+/*
+			case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+				PrintDebug("GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS");
+				break;
+*/
+			case GL_FRAMEBUFFER_UNSUPPORTED:
+				PrintDebug("GL_FRAMEBUFFER_UNSUPPORTED");
+				break;
+		}
+
+		return glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+	}
+
+	return cc_false;
+}
+
+void Renderer_FramebufferDestroy(Renderer_Framebuffer* const framebuffer)
+{
+	glDeleteRenderbuffers(1, &framebuffer->stencil_renderbuffer_id);
+	glDeleteRenderbuffers(1, &framebuffer->depth_renderbuffer_id);
+	glDeleteFramebuffers(1, &framebuffer->id);
+
+	Renderer_TextureDestroy(&framebuffer->texture);
+}
+
+Renderer_Texture* Renderer_FramebufferTexture(Renderer_Framebuffer* const framebuffer)
+{
+	return &framebuffer->texture;
+}
+
+void* Renderer_FramebufferNative(Renderer_Framebuffer* const framebuffer)
+{
+	return (void*)(GLsizeiptr)framebuffer->id;
 }

@@ -1,6 +1,6 @@
 #include "renderer.h"
 
-#ifdef RENDERER_OPENGLES2
+#if defined(RENDERER_OPENGL3) || defined(RENDERER_OPENGLES2)
 	#include "renderer-opengles2.c"
 #else
 	#include "renderer-sdl.c"

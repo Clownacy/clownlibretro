@@ -10,6 +10,7 @@ typedef Renderer_Colour Video_Colour;
 typedef Renderer_Rect Video_Rect;
 typedef Renderer_Format Video_Format;
 typedef Renderer_Texture Video_Texture;
+typedef Renderer_Framebuffer Video_Framebuffer;
 
 extern size_t window_width;
 extern size_t window_height;
@@ -33,3 +34,9 @@ float Video_GetDPIScale(void);
 #define Video_TextureDraw Renderer_TextureDraw
 #define Video_ColourFill Renderer_ColourFill
 #define Video_DrawLine Renderer_DrawLine
+
+#define Video_FramebufferCreateSoftware Renderer_FramebufferCreateSoftware
+#define Video_FramebufferCreateHardware Renderer_FramebufferCreateHardware
+#define Video_FramebufferDestroy Renderer_FramebufferDestroy
+#define Video_FramebufferTexture Renderer_FramebufferTexture
+#define Video_FramebufferNative Renderer_FramebufferNative

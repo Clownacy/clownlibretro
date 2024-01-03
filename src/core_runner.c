@@ -49,6 +49,11 @@ typedef struct Core
 	unsigned int (*retro_get_region)(void);
 	void* (*retro_get_memory_data)(unsigned int id);
 	size_t (*retro_get_memory_size)(unsigned int id);
+
+	retro_hw_context_reset_t context_reset;
+	retro_hw_context_reset_t context_destroy;
+
+	cc_bool hardware_render;
 } Core;
 
 static cc_bool quit;
@@ -72,7 +77,7 @@ static cc_bool variables_modified;
 static unsigned char *game_buffer;
 
 static cc_bool core_framebuffer_created;
-static Video_Texture core_framebuffer;
+static Video_Framebuffer core_framebuffer;
 static size_t core_framebuffer_display_width;
 static size_t core_framebuffer_display_height;
 static size_t core_framebuffer_max_width;
@@ -80,6 +85,9 @@ static size_t core_framebuffer_max_height;
 static float core_framebuffer_display_aspect_ratio;
 static Video_Format core_framebuffer_format;
 static size_t size_of_framebuffer_pixel;
+static cc_bool core_framebuffer_depth;
+static cc_bool core_framebuffer_stencil;
+static cc_bool core_framebuffer_bottom_left_origin;
 
 static cc_bool audio_stream_created;
 static Audio_Stream audio_stream;
@@ -128,6 +136,10 @@ static cc_bool LoadCore(Core *core, const char *filename)
 	DO_FUNCTION(retro_get_memory_data);
 	DO_FUNCTION(retro_get_memory_size);
 #undef DO_FUNCTION
+
+	core->context_reset = NULL;
+	core->context_destroy = NULL;
+	core->hardware_render = cc_false;
 
 	return cc_true;
 }
@@ -233,6 +245,198 @@ static bool SetPixelFormat(const enum retro_pixel_format pixel_format)
 static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
 {
 	return SetPixelFormat(*pixel_format);
+}
+
+static uintptr_t GetCurrentFramebuffer(void)
+{
+	return (uintptr_t)Video_FramebufferNative(&core_framebuffer);
+}
+
+/* TODO: Move this to the GLES2 backend. */
+static const GLubyte* GetString(const GLenum name)
+{
+	if (name == GL_EXTENSIONS)
+		return (const GLubyte*)"";
+	else
+		return glGetString(name);
+}
+
+#if defined(RENDERER_OPENGL3) || defined(RENDERER_OPENGLES2)
+static retro_proc_address_t GetProcAddress(const char* const name)
+{
+#if 0
+	PrintDebug("GetProcAddress %s %p", name, SDL_GL_GetProcAddress(name));
+#endif
+#ifdef RENDERER_OPENGL3
+	return SDL_GL_GetProcAddress(name);
+#else
+#define DO_FUNCTION(NAME) if (SDL_strcmp(name, #NAME) == 0) return (retro_proc_address_t)NAME
+	DO_FUNCTION(glActiveTexture);
+	DO_FUNCTION(glBindTexture);
+	DO_FUNCTION(glCompressedTexImage2D);
+	DO_FUNCTION(glCompressedTexSubImage2D);
+	DO_FUNCTION(glCopyTexImage2D);
+	DO_FUNCTION(glCopyTexSubImage2D);
+	DO_FUNCTION(glDeleteTextures);
+	DO_FUNCTION(glGenTextures);
+	DO_FUNCTION(glGetTexParameterfv);
+	DO_FUNCTION(glGetTexParameteriv);
+	DO_FUNCTION(glIsTexture);
+	DO_FUNCTION(glTexImage2D);
+	DO_FUNCTION(glTexParameterf);
+	DO_FUNCTION(glTexParameteri);
+	DO_FUNCTION(glTexSubImage2D);
+	DO_FUNCTION(glClear);
+	DO_FUNCTION(glClearColor);
+	DO_FUNCTION(glClearDepthf);
+	DO_FUNCTION(glClearStencil);
+	DO_FUNCTION(glFinish);
+	DO_FUNCTION(glFlush);
+	DO_FUNCTION(glReadPixels);
+	DO_FUNCTION(glBindFramebuffer);
+	DO_FUNCTION(glBindRenderbuffer);
+	DO_FUNCTION(glCheckFramebufferStatus);
+	DO_FUNCTION(glDeleteFramebuffers);
+	DO_FUNCTION(glDeleteRenderbuffers);
+	DO_FUNCTION(glFramebufferRenderbuffer);
+	DO_FUNCTION(glFramebufferTexture2D);
+	DO_FUNCTION(glGenFramebuffers);
+	DO_FUNCTION(glGenRenderbuffers);
+	DO_FUNCTION(glGenerateMipmap);
+	DO_FUNCTION(glGetFramebufferAttachmentParameteriv);
+	DO_FUNCTION(glGetRenderbufferParameteriv);
+	DO_FUNCTION(glIsFramebuffer);
+	DO_FUNCTION(glIsRenderbuffer);
+	DO_FUNCTION(glRenderbufferStorage);
+	DO_FUNCTION(glAttachShader);
+	DO_FUNCTION(glBindAttribLocation);
+	DO_FUNCTION(glCompileShader);
+	DO_FUNCTION(glCreateProgram);
+	DO_FUNCTION(glCreateShader);
+	DO_FUNCTION(glDeleteProgram);
+	DO_FUNCTION(glDeleteShader);
+	DO_FUNCTION(glDetachShader);
+	DO_FUNCTION(glGetActiveAttrib);
+	DO_FUNCTION(glGetActiveUniform);
+	DO_FUNCTION(glGetAttachedShaders);
+	DO_FUNCTION(glGetAttribLocation);
+	DO_FUNCTION(glGetProgramInfoLog);
+	DO_FUNCTION(glGetProgramiv);
+	DO_FUNCTION(glGetShaderInfoLog);
+	DO_FUNCTION(glGetShaderPrecisionFormat);
+	DO_FUNCTION(glGetShaderSource);
+	DO_FUNCTION(glGetShaderiv);
+	DO_FUNCTION(glGetUniformfv);
+	DO_FUNCTION(glGetUniformiv);
+	DO_FUNCTION(glGetUniformLocation);
+	DO_FUNCTION(glIsProgram);
+	DO_FUNCTION(glIsShader);
+	DO_FUNCTION(glLinkProgram);
+	DO_FUNCTION(glReleaseShaderCompiler);
+	DO_FUNCTION(glShaderBinary);
+	DO_FUNCTION(glShaderSource);
+	DO_FUNCTION(glUniform1f);
+	DO_FUNCTION(glUniform2f);
+	DO_FUNCTION(glUniform3f);
+	DO_FUNCTION(glUniform4f);
+	DO_FUNCTION(glUniform1i);
+	DO_FUNCTION(glUniform2i);
+	DO_FUNCTION(glUniform3i);
+	DO_FUNCTION(glUniform4i);
+	DO_FUNCTION(glUseProgram);
+	DO_FUNCTION(glValidateProgram);
+	DO_FUNCTION(glBindBuffer);
+	DO_FUNCTION(glBufferData);
+	DO_FUNCTION(glBufferSubData);
+	DO_FUNCTION(glDeleteBuffers);
+	DO_FUNCTION(glDisableVertexAttribArray);
+	DO_FUNCTION(glDrawArrays);
+	DO_FUNCTION(glDrawElements);
+	DO_FUNCTION(glEnableVertexAttribArray);
+	DO_FUNCTION(glGenBuffers);
+	DO_FUNCTION(glGetBufferParameteriv);
+	DO_FUNCTION(glGetVertexAttribfv);
+	DO_FUNCTION(glGetVertexAttribiv);
+	DO_FUNCTION(glGetVertexAttribPointerv);
+	DO_FUNCTION(glIsBuffer);
+	DO_FUNCTION(glVertexAttrib1f);
+	DO_FUNCTION(glVertexAttrib2f);
+	DO_FUNCTION(glVertexAttrib3f);
+	DO_FUNCTION(glVertexAttrib4f);
+	DO_FUNCTION(glVertexAttribPointer);
+	DO_FUNCTION(glBlendColor);
+	DO_FUNCTION(glBlendEquation);
+	DO_FUNCTION(glBlendEquationSeparate);
+	DO_FUNCTION(glBlendFunc);
+	DO_FUNCTION(glBlendFuncSeparate);
+	DO_FUNCTION(glColorMask);
+	DO_FUNCTION(glCullFace);
+	DO_FUNCTION(glDepthFunc);
+	DO_FUNCTION(glDepthMask);
+	DO_FUNCTION(glDepthRangef);
+	DO_FUNCTION(glDisable);
+	DO_FUNCTION(glEnable);
+	DO_FUNCTION(glFrontFace);
+	DO_FUNCTION(glGetBooleanv);
+	DO_FUNCTION(glGetFloatv);
+	DO_FUNCTION(glGetIntegerv);
+	DO_FUNCTION(glGetError);
+	DO_FUNCTION(glHint);
+	DO_FUNCTION(glIsEnabled);
+	DO_FUNCTION(glLineWidth);
+	DO_FUNCTION(glPixelStorei);
+	DO_FUNCTION(glPolygonOffset);
+	DO_FUNCTION(glSampleCoverage);
+	DO_FUNCTION(glScissor);
+	DO_FUNCTION(glStencilFunc);
+	DO_FUNCTION(glStencilFuncSeparate);
+	DO_FUNCTION(glStencilMask);
+	DO_FUNCTION(glStencilMaskSeparate);
+	DO_FUNCTION(glStencilOp);
+	DO_FUNCTION(glStencilOpSeparate);
+	DO_FUNCTION(glViewport);
+	/*DO_FUNCTION(glGetString);*/
+	if (SDL_strcmp(name, "glGetString") == 0) return (retro_proc_address_t)GetString;
+#undef DO_FUNCTION
+
+	return NULL;
+#endif
+}
+#endif
+
+static bool Callback_SetHWRender(struct retro_hw_render_callback *renderer)
+{
+#if defined(RENDERER_OPENGL3) || defined(RENDERER_OPENGLES2)
+#ifdef RENDERER_OPENGL3
+	if (renderer->context_type != RETRO_HW_CONTEXT_OPENGL_CORE)
+		return false;
+#endif
+#ifdef RENDERER_OPENGLES2
+	if (renderer->context_type != RETRO_HW_CONTEXT_OPENGLES2)
+		return false;
+#endif
+
+	if (renderer->debug_context)
+		return false;
+
+	core.context_reset = renderer->context_reset;
+	core.context_destroy = renderer->context_destroy;
+
+	renderer->get_current_framebuffer = GetCurrentFramebuffer;
+	renderer->get_proc_address = GetProcAddress;
+
+	core_framebuffer_depth = renderer->depth;
+	core_framebuffer_stencil = renderer->stencil;
+	core_framebuffer_bottom_left_origin = renderer->bottom_left_origin;
+
+	/* TODO: Version numbers. */
+
+	core.hardware_render = cc_true;
+
+	return true;
+#else
+	return false;
+#endif
 }
 
 static void Callback_GetVariable(struct retro_variable *variable)
@@ -389,9 +593,12 @@ static bool SetSystemAVInfo(const struct retro_system_av_info *system_av_info)
 	if (core_framebuffer_max_width != system_av_info->geometry.max_width || core_framebuffer_max_height != system_av_info->geometry.max_height)
 	{
 		if (core_framebuffer_created)
-			Video_TextureDestroy(&core_framebuffer);
+			Video_FramebufferDestroy(&core_framebuffer);
 
-		core_framebuffer_created = Video_TextureCreate(&core_framebuffer, system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, cc_true);
+		if (core.hardware_render)
+			core_framebuffer_created = Video_FramebufferCreateHardware(&core_framebuffer, system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_depth, core_framebuffer_stencil);
+		else
+			core_framebuffer_created = Video_FramebufferCreateSoftware(&core_framebuffer, system_av_info->geometry.max_width, system_av_info->geometry.max_height, core_framebuffer_format, cc_true);
 
 		core_framebuffer_max_width = system_av_info->geometry.max_width;
 		core_framebuffer_max_height = system_av_info->geometry.max_height;
@@ -453,6 +660,12 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 
 		case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
 			if (!Callback_SetPixelFormat((const enum retro_pixel_format*)data))
+				return false;
+
+			break;
+
+		case RETRO_ENVIRONMENT_SET_HW_RENDER:
+			if (!Callback_SetHWRender((struct retro_hw_render_callback*)data))
 				return false;
 
 			break;
@@ -522,11 +735,21 @@ static bool Callback_Environment(unsigned int cmd, void *data)
 
 static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned int height, size_t pitch)
 {
-	if (data != NULL)
+	if (data == NULL)
+		return;
+
+	core_framebuffer_display_width = width;
+	core_framebuffer_display_height = height;
+
+	SDL_assert(width <= core_framebuffer_max_width);
+	SDL_assert(height <= core_framebuffer_max_height);
+
+	if (data != RETRO_HW_FRAME_BUFFER_VALID)
 	{
 		Video_Rect rect;
 		size_t destination_pitch;
 
+		Video_Texture* const texture = Video_FramebufferTexture(&core_framebuffer);
 		const unsigned char *source_pixels = (const unsigned char*)data;
 		unsigned char *destination_pixels;
 
@@ -535,20 +758,14 @@ static void Callback_VideoRefresh(const void *data, unsigned int width, unsigned
 		rect.width = width;
 		rect.height = height;
 
-		core_framebuffer_display_width = width;
-		core_framebuffer_display_height = height;
-
-		SDL_assert(width <= core_framebuffer_max_width);
-		SDL_assert(height <= core_framebuffer_max_height);
-
-		if (Video_TextureLock(&core_framebuffer, &rect, &destination_pixels, &destination_pitch))
+		if (Video_TextureLock(texture, &rect, &destination_pixels, &destination_pitch))
 		{
 			unsigned int y;
 
 			for (y = 0; y < height; ++y)
 				SDL_memcpy(&destination_pixels[destination_pitch * y], &source_pixels[pitch * y], width * size_of_framebuffer_pixel);
 
-			Video_TextureUnlock(&core_framebuffer);
+			Video_TextureUnlock(texture);
 		}
 	}
 }
@@ -670,6 +887,8 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 
 			/* Set default pixel format */
 			SetPixelFormat(RETRO_PIXEL_FORMAT_0RGB1555);
+
+			core_framebuffer_bottom_left_origin = cc_false;
 
 			/* Registers callbacks with the libretro core */
 			core.retro_set_environment(Callback_Environment);
@@ -836,6 +1055,9 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 							PrintError("Save file could not be read");
 					}
 
+					if (core.hardware_render)
+						core.context_reset();
+
 					return cc_true;
 				}
 
@@ -874,10 +1096,13 @@ void CoreRunner_Deinit(void)
 			PrintError("Save file could not be written");
 	}
 
+	if (core.hardware_render)
+		core.context_destroy();
+
 	if (audio_stream_created)
 		Audio_StreamDestroy(&audio_stream);
 
-	Video_TextureDestroy(&core_framebuffer);
+	Video_FramebufferDestroy(&core_framebuffer);
 
 	core.retro_unload_game();
 
@@ -952,12 +1177,18 @@ void CoreRunner_Draw(void)
 	src_rect.width = core_framebuffer_display_width;
 	src_rect.height = core_framebuffer_display_height;
 
+	if (core_framebuffer_bottom_left_origin)
+	{
+		src_rect.y = src_rect.height;
+		src_rect.height = -src_rect.height;
+	}
+
 	dst_rect.x = (window_width - dst_width) / 2;
 	dst_rect.y = (window_height - dst_height) / 2;
 	dst_rect.width = dst_width;
 	dst_rect.height = dst_height;
 
-	Video_TextureDraw(&core_framebuffer, &dst_rect, &src_rect, white);
+	Video_TextureDraw(Video_FramebufferTexture(&core_framebuffer), &dst_rect, &src_rect, white);
 
 	if (screen_type == CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT_WITH_SCANLINES)
 	{

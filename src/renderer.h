@@ -29,7 +29,7 @@ typedef enum Renderer_Format
 	VIDEO_FORMAT_A8 = 3
 } Renderer_Format;
 
-#ifdef RENDERER_OPENGLES2
+#if defined(RENDERER_OPENGL3) || defined(RENDERER_OPENGLES2)
 	#include "renderer-opengles2.h"
 #else
 	#include "renderer-sdl.h"
@@ -50,3 +50,10 @@ void Renderer_TextureDraw(Renderer_Texture *texture, const Renderer_Rect *dst_re
 
 void Renderer_ColourFill(const Renderer_Rect *rect, Renderer_Colour colour, unsigned char alpha);
 void Renderer_DrawLine(size_t x1, size_t y1, size_t x2, size_t y2);
+
+cc_bool Renderer_FramebufferCreateSoftware(Renderer_Framebuffer *framebuffer, size_t width, size_t height, Renderer_Format format, cc_bool streaming);
+cc_bool Renderer_FramebufferCreateHardware(Renderer_Framebuffer *framebuffer, size_t width, size_t height, cc_bool depth, cc_bool stencil);
+void Renderer_FramebufferDestroy(Renderer_Framebuffer *framebuffer);
+Renderer_Texture* Renderer_FramebufferTexture(Renderer_Framebuffer *framebuffer);
+Renderer_Texture* Renderer_FramebufferTexture(Renderer_Framebuffer *framebuffer);
+void* Renderer_FramebufferNative(Renderer_Framebuffer *framebuffer);
