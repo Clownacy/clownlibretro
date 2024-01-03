@@ -1,10 +1,6 @@
 #include <stddef.h>
 
-#ifdef RENDERER_OPENGLES2
-	#include <GLES2/gl2.h>
-#else
-	#include <glad/glad.h>
-#endif
+#include <glad/glad.h>
 
 typedef struct Renderer_Texture
 {

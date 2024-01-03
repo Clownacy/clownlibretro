@@ -63,7 +63,6 @@ static void CheckError(void)
 }
 #endif
 
-#ifndef RENDERER_OPENGLES2
 static void APIENTRY DebugCallback(GLenum source,
             GLenum type,
             GLuint id,
@@ -77,7 +76,6 @@ static void APIENTRY DebugCallback(GLenum source,
 	else
 		PrintWarning("%s", message);
 }
-#endif
 
 static GLuint CompileShader(const GLenum shader_type, const GLchar* const shader_source)
 {
@@ -228,11 +226,16 @@ SDL_Window* Renderer_Init(const char* const window_name, const size_t window_wid
 				} \
 			";
 
-		#ifndef RENDERER_OPENGLES2
+		#ifdef RENDERER_OPENGLES2
+			gladLoadGLES2Loader(SDL_GL_GetProcAddress);
+		#else
 			gladLoadGLLoader(SDL_GL_GetProcAddress);
-			glEnable(GL_DEBUG_OUTPUT);
-			glDebugMessageCallback(DebugCallback, NULL);
 		#endif
+			if (GLAD_GL_KHR_debug)
+			{
+				glEnable(GL_DEBUG_OUTPUT);
+				glDebugMessageCallback(DebugCallback, NULL);
+			}
 
 			program = CompileProgram(vertex_shader_source, fragment_shader_source);
 
@@ -557,16 +560,10 @@ cc_bool Renderer_FramebufferCreateHardware(Renderer_Framebuffer* const framebuff
 
 		if (depth)
 		{
-		#ifdef RENDERER_OPENGLES2
-			/* TODO: This is an extension. Hope and pray. */
-			#define DEPTH24_STENCIL8_OES 0x88F0
-		#else
-			#define DEPTH24_STENCIL8_OES GL_DEPTH24_STENCIL8
-		#endif
-
+			/* TODO: GL_DEPTH24_STENCIL8 is an extension in OpenGL ES 2.0. Hope and pray. */
 			glGenRenderbuffers(1, &framebuffer->depth_renderbuffer_id);
 			glBindRenderbuffer(GL_RENDERBUFFER, framebuffer->depth_renderbuffer_id);
-			glRenderbufferStorage(GL_RENDERBUFFER, stencil ? DEPTH24_STENCIL8_OES : GL_DEPTH_COMPONENT16, width, height);
+			glRenderbufferStorage(GL_RENDERBUFFER, stencil ? GL_DEPTH24_STENCIL8 : GL_DEPTH_COMPONENT16, width, height);
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, framebuffer->depth_renderbuffer_id);
 		}
 
