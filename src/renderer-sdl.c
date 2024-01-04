@@ -185,3 +185,39 @@ void Renderer_DrawLine(size_t x1, size_t y1, size_t x2, size_t y2)
 {
 	SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
 }
+
+/********************
+* Framebuffer stuff *
+********************/
+
+cc_bool Renderer_FramebufferCreateSoftware(Renderer_Framebuffer* const framebuffer, const size_t width, const size_t height, const Renderer_Format format, const cc_bool streaming)
+{
+	return Renderer_TextureCreate(&framebuffer->texture, width, height, format, streaming);
+}
+
+cc_bool Renderer_FramebufferCreateHardware(Renderer_Framebuffer* const framebuffer, const size_t width, const size_t height, const cc_bool depth, const cc_bool stencil)
+{
+	(void)framebuffer;
+	(void)width;
+	(void)height;
+	(void)depth;
+	(void)stencil;
+
+	return cc_false;
+}
+
+void Renderer_FramebufferDestroy(Renderer_Framebuffer* const framebuffer)
+{
+	Renderer_TextureDestroy(&framebuffer->texture);
+}
+
+Renderer_Texture* Renderer_FramebufferTexture(Renderer_Framebuffer* const framebuffer)
+{
+	return &framebuffer->texture;
+}
+
+void* Renderer_FramebufferNative(Renderer_Framebuffer* const framebuffer)
+{
+	(void)framebuffer;
+	return NULL;
+}

@@ -386,12 +386,12 @@ static bool Callback_SetPixelFormat(const enum retro_pixel_format *pixel_format)
 	return SetPixelFormat(*pixel_format);
 }
 
+#if defined(RENDERER_OPENGL3) || defined(RENDERER_OPENGLES2)
 static uintptr_t GetCurrentFramebuffer(void)
 {
 	return (uintptr_t)Video_FramebufferNative(&core_framebuffer);
 }
 
-#if defined(RENDERER_OPENGL3) || defined(RENDERER_OPENGLES2)
 static retro_proc_address_t GetProcAddress(const char* const name)
 {
 #if 0
@@ -432,6 +432,8 @@ static bool Callback_SetHWRender(struct retro_hw_render_callback *renderer)
 
 	return true;
 #else
+	(void)renderer;
+
 	return false;
 #endif
 }
