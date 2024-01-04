@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0...3.14)
 
 option(CLOWNLIBRETRO_STB_TRUETYPE_FONT_RENDERER "Use stb_truetype as the font renderer instead of FreeType" OFF)
+set(CLOWNLIBRETRO_RENDERER SDL2 CACHE STRING "Which rendering API to use")
+set_property(CACHE CLOWNLIBRETRO_RENDERER PROPERTY STRINGS SDL2 OPENGL3 OPENGLES2)
 
 project(clownlibretro LANGUAGES C)
 
@@ -54,13 +56,12 @@ endif()
 
 find_package(OpenGL)
 
-if(0)
-#if(TARGET OpenGL::OpenGL)
+if(CLOWNLIBRETRO_RENDERER STREQUAL "OPENGL3")
 	target_link_libraries(clownlibretro PRIVATE OpenGL::OpenGL)
 	target_compile_definitions(clownlibretro PRIVATE RENDERER_OPENGL3)
 	target_include_directories(clownlibretro PRIVATE "src/glad/include")
 	target_sources(clownlibretro PRIVATE "src/glad/src/glad.c")
-elseif(TARGET OpenGL::GLES2)
+elseif(CLOWNLIBRETRO_RENDERER STREQUAL "OPENGLES2")
 	target_link_libraries(clownlibretro PRIVATE OpenGL::GLES2)
 	target_compile_definitions(clownlibretro PRIVATE RENDERER_OPENGLES2)
 	target_include_directories(clownlibretro PRIVATE "src/glad/include")
