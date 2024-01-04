@@ -919,7 +919,7 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_
 					if (save_ram != NULL && save_ram_size != 0)
 					{
 						if (ReadFileToBuffer(save_file_path, save_ram, save_ram_size))
-							PrintError("Save file read");
+							PrintDebug("Save file read");
 						else
 							PrintError("Save file could not be read");
 					}
@@ -977,7 +977,7 @@ void CoreRunner_Deinit(void)
 	{
 		/* Write save data to file */
 		if (WriteBufferToFile(save_file_path, save_ram, save_ram_size))
-			PrintError("Save file written");
+			PrintDebug("Save file written");
 		else
 			PrintError("Save file could not be written");
 	}
