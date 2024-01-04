@@ -360,7 +360,7 @@ static unsigned int BytesPerPixel(const Renderer_Format format)
 		format == VIDEO_FORMAT_0RGB1555 ? 2 :
 		format == VIDEO_FORMAT_XRGB8888 ? 4 :
 		format == VIDEO_FORMAT_RGB565 ? 2 :
-		/*format == VIDEO_FORMAT_A8 ?*/ 2;
+		/*format == VIDEO_FORMAT_A8 ?*/ 1;
 }
 
 static GLenum TextureFormat(const Renderer_Format format)
@@ -427,49 +427,37 @@ void Renderer_TextureUpdate(Renderer_Texture *texture, const void *pixels, const
 	glPixelStorei(GL_UNPACK_ALIGNMENT, alignments[rect->width % CC_COUNT_OF(alignments)]);
 	glBindTexture(GL_TEXTURE_2D, texture->id);
 
-	if (texture->format == VIDEO_FORMAT_A8)
+	if (texture->format == VIDEO_FORMAT_A8 || texture->format == VIDEO_FORMAT_XRGB8888 || texture->format == VIDEO_FORMAT_0RGB1555)
 	{
-		unsigned char *converted_pixels = (unsigned char*)SDL_malloc(rect->width * rect->height * 2);
+		const unsigned int bytes_per_pixel =
+			texture->format == VIDEO_FORMAT_0RGB1555 ? 2 :
+			texture->format == VIDEO_FORMAT_XRGB8888 ? 4 :
+			texture->format == VIDEO_FORMAT_RGB565 ? 2 :
+			/*texture->format == VIDEO_FORMAT_A8 ?*/ 2;
+
+		void *converted_pixels = SDL_malloc(rect->width * rect->height * bytes_per_pixel);
 
 		if (converted_pixels != NULL)
 		{
-			size_t y;
+			size_t i;
 
-			unsigned char *output_pointer = converted_pixels;
-			const unsigned char *input_pointer = (const unsigned char*)pixels;
-
-			for (y = 0; y < rect->height; ++y)
+			if (texture->format == VIDEO_FORMAT_A8)
 			{
-				size_t x;
+				const unsigned char *input_pointer = (const unsigned char*)pixels;
+				unsigned char *output_pointer = (unsigned char*)converted_pixels;
 
-				for (x = 0; x < rect->width; ++x)
+				for (i = 0; i < rect->width * rect->height; ++i)
 				{
 					*output_pointer++ = 0xFF;
 					*output_pointer++ = *input_pointer++;
 				}
 			}
-
-			glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->width, rect->height, TextureFormat(texture->format), TextureType(texture->format), converted_pixels);
-
-			SDL_free(converted_pixels);
-		}
-	}
-	else if (texture->format == VIDEO_FORMAT_XRGB8888)
-	{
-		unsigned char *converted_pixels = (unsigned char*)SDL_malloc(rect->width * rect->height * 4);
-
-		if (converted_pixels != NULL)
-		{
-			size_t y;
-
-			unsigned char *output_pointer = converted_pixels;
-			const GLuint *input_pointer = (const GLuint*)pixels;
-
-			for (y = 0; y < rect->height; ++y)
+			else if (texture->format == VIDEO_FORMAT_XRGB8888)
 			{
-				size_t x;
+				const GLuint *input_pointer = (const GLuint*)pixels;
+				unsigned char *output_pointer = (unsigned char*)converted_pixels;
 
-				for (x = 0; x < rect->width; ++x)
+				for (i = 0; i < rect->width * rect->height; ++i)
 				{
 					const GLuint pixel = *input_pointer++;
 					*output_pointer++ = (pixel >> 8 * 2) & 0xFF;
@@ -477,6 +465,14 @@ void Renderer_TextureUpdate(Renderer_Texture *texture, const void *pixels, const
 					*output_pointer++ = (pixel >> 8 * 0) & 0xFF;
 					*output_pointer++ = (pixel >> 8 * 3) & 0xFF;
 				}
+			}
+			else if (texture->format == VIDEO_FORMAT_0RGB1555)
+			{
+				const GLushort *input_pointer = (const GLushort*)pixels;
+				GLushort *output_pointer = (GLushort*)converted_pixels;
+
+				for (i = 0; i < rect->width * rect->height; ++i)
+					*output_pointer++ = (*input_pointer++ << 1) | 1;
 			}
 
 			glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->width, rect->height, TextureFormat(texture->format), TextureType(texture->format), converted_pixels);
