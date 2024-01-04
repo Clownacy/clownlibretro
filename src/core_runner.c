@@ -927,6 +927,26 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_
 					if (core.hardware_render)
 						core.context_reset();
 
+					PrintDebug(core.hardware_render ? "Using hardware renderer" : "Using software renderer");
+					switch (core_framebuffer_format)
+					{
+						case VIDEO_FORMAT_0RGB1555:
+							PrintDebug("Using 0RGB1555");
+							break;
+
+						case VIDEO_FORMAT_RGB565:
+							PrintDebug("Using RGB565");
+							break;
+
+						case VIDEO_FORMAT_XRGB8888:
+							PrintDebug("Using XRGB8888");
+							break;
+
+						case VIDEO_FORMAT_A8:
+							PrintDebug("Using A8");
+							break;
+					}
+
 					return cc_true;
 				}
 
