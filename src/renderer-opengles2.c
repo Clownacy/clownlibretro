@@ -173,14 +173,17 @@ SDL_Window* Renderer_Init(const char* const window_name, const size_t window_wid
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 #else
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG
-#ifndef NDEBUG
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+#endif
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0
+	#ifdef RENDERER_OPENGL3
+		| SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG
+	#endif
+	#ifndef NDEBUG
 		| SDL_GL_CONTEXT_DEBUG_FLAG
-#endif
+	#endif
 		);
-#endif
 
 	window = SDL_CreateWindow(window_name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, window_flags | SDL_WINDOW_OPENGL);
 
@@ -231,11 +234,14 @@ SDL_Window* Renderer_Init(const char* const window_name, const size_t window_wid
 		#else
 			gladLoadGLLoader(SDL_GL_GetProcAddress);
 		#endif
+		#ifndef NDEBUG
 			if (GLAD_GL_KHR_debug)
 			{
 				glEnable(GL_DEBUG_OUTPUT);
+				glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 				glDebugMessageCallback(DebugCallback, NULL);
 			}
+		#endif
 
 			program = CompileProgram(vertex_shader_source, fragment_shader_source);
 
