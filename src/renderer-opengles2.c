@@ -372,7 +372,7 @@ static GLenum TextureFormat(const Renderer_Format format)
 #ifdef RENDERER_OPENGLES2
 		/*format == VIDEO_FORMAT_A8 ?*/ GL_LUMINANCE_ALPHA;
 #else
-		/*format == VIDEO_FORMAT_A8 ?*/ GL_RG;/* TODO: GL_LUMINANCE_ALPHA; */
+		/*format == VIDEO_FORMAT_A8 ?*/ GL_RGBA;
 #endif
 }
 
@@ -433,7 +433,11 @@ void Renderer_TextureUpdate(Renderer_Texture *texture, const void *pixels, const
 			texture->format == VIDEO_FORMAT_0RGB1555 ? 2 :
 			texture->format == VIDEO_FORMAT_XRGB8888 ? 4 :
 			texture->format == VIDEO_FORMAT_RGB565 ? 2 :
+#ifdef RENDERER_OPENGLES2
 			/*texture->format == VIDEO_FORMAT_A8 ?*/ 2;
+#else
+			/*texture->format == VIDEO_FORMAT_A8 ?*/ 4;
+#endif
 
 		void *converted_pixels = SDL_malloc(rect->width * rect->height * bytes_per_pixel);
 
@@ -448,12 +452,17 @@ void Renderer_TextureUpdate(Renderer_Texture *texture, const void *pixels, const
 
 				for (i = 0; i < rect->width * rect->height; ++i)
 				{
+#ifndef RENDERER_OPENGLES2
+					*output_pointer++ = 0xFF;
+					*output_pointer++ = 0xFF;
+#endif
 					*output_pointer++ = 0xFF;
 					*output_pointer++ = *input_pointer++;
 				}
 			}
 			else if (texture->format == VIDEO_FORMAT_XRGB8888)
 			{
+				/* TODO: Use native texture type in Desktop OpenGL to avoid this. */
 				const GLuint *input_pointer = (const GLuint*)pixels;
 				unsigned char *output_pointer = (unsigned char*)converted_pixels;
 
