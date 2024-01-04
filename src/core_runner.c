@@ -64,7 +64,7 @@ static CoreRunnerScreenType screen_type;
 static double *frames_per_second;
 
 static char *core_path;
-static char *game_path;
+static char *game_path, *game_path_override;
 /*static char libretro_path[PATH_MAX];*/
 static char *pref_path;
 static char *save_file_path;
@@ -72,9 +72,10 @@ static char *save_file_path;
 static Core core;
 static Variable *variables;
 static size_t total_variables;
-static cc_bool variables_modified;
+static cc_bool variables_modified = cc_true;
 
 static unsigned char *game_buffer;
+static size_t game_buffer_size;
 
 static cc_bool core_framebuffer_created;
 static Video_Framebuffer core_framebuffer;
@@ -92,6 +93,144 @@ static cc_bool core_framebuffer_bottom_left_origin;
 static cc_bool audio_stream_created;
 static Audio_Stream audio_stream;
 static unsigned long audio_stream_sample_rate;
+
+/***************
+* Game loading *
+***************/
+
+static cc_bool BootGame(void)
+{
+	struct retro_game_info game_info;
+
+	game_info.path = game_path_override != NULL ? game_path_override : game_path;
+	game_info.data = game_buffer;
+	game_info.size = game_buffer_size;
+	game_info.meta = NULL;
+
+	return core.retro_load_game(&game_info) ? cc_true : cc_false;
+}
+
+static cc_bool LoadGame(const char* const _game_path)
+{
+	/* TODO: handle cores that don't need supplied game data */
+	struct retro_system_info system_info;
+	cc_bool game_loaded;
+#ifdef ENABLE_LIBZIP
+	zip_t *zip;
+#endif
+
+	/* Grab some info for later */
+	core.retro_get_system_info(&system_info);
+
+	game_path = SDL_strdup(_game_path);
+	game_path_override = NULL;
+	game_buffer = NULL;
+	game_buffer_size = 0;
+
+	game_loaded = false;
+
+#ifdef ENABLE_LIBZIP
+	/* If the file is a zip archive, then try extracting a useable file.
+		If it isn't, just assume it's a plain ROM and load it directly. */
+	zip = zip_open(game_path, ZIP_RDONLY, NULL);
+
+	if (zip != NULL)
+	{
+		zip_int64_t i;
+
+		const zip_int64_t total_files = zip_get_num_entries(zip, 0);
+
+		for (i = 0; i < total_files; ++i)
+		{
+			zip_stat_t stat;
+			if (zip_stat_index(zip, i, 0, &stat) == 0 && stat.valid & ZIP_STAT_SIZE)
+			{
+				zip_file_t *zip_file = zip_fopen_index(zip, i, 0);
+
+				if (zip_file != NULL)
+				{
+					game_buffer = (unsigned char*)SDL_malloc(stat.size);
+
+					if (game_buffer != NULL)
+					{
+						game_buffer_size = stat.size;
+
+						zip_fread(zip_file, game_buffer, game_buffer_size);
+
+						if (system_info.need_fullpath)
+						{
+							/* Mesen is weird and demands a file path even for zipped files,
+								so extract the ROM to a proper file and give Meson the path to it. */
+							SDL_asprintf(&game_path_override, "%stemp", pref_path);
+
+							if (game_path_override == NULL)
+							{
+								PrintError("Could not obtain temporary filename");
+							}
+							else
+							{
+								SDL_RWops* const file = SDL_RWFromFile(game_path_override, "wb");
+
+								if (file == NULL)
+								{
+									PrintError("Could not open temporary file '%s' for writing", game_path_override);
+								}
+								else
+								{
+									SDL_RWwrite(file, game_buffer, 1, game_buffer_size);
+									SDL_RWclose(file);
+
+									/* We no longer need the buffer, so free it. */
+									SDL_free(game_buffer);
+									game_buffer = NULL;
+
+									/* Finally, load the extracted ROM file. */
+									game_loaded = BootGame();
+								}
+							}
+						}
+						else
+						{
+							/* The libretro core is sane, so we can just give it the memory buffer. */
+							game_loaded = BootGame();
+						}
+
+						if (game_loaded)
+						{
+							zip_fclose(zip_file);
+							break;
+						}
+
+						SDL_free(game_buffer);
+					}
+
+					zip_fclose(zip_file);
+				}
+			}
+		}
+
+		zip_close(zip);
+	}
+	else
+#endif
+	{
+		if (system_info.need_fullpath || ReadFileToAllocatedBuffer(game_path, &game_buffer, &game_buffer_size))
+			game_loaded = BootGame();
+		else
+			PrintError("Could not open file '%s'", game_path);
+	}
+
+	return game_loaded;
+}
+
+void UnloadGame(void)
+{
+	core.retro_unload_game();
+
+	SDL_free(game_path);
+	SDL_free(game_path_override);
+	SDL_free(game_buffer);
+}
 
 /*************
 * Core stuff *
@@ -375,7 +514,7 @@ static void Callback_SetVariables(const struct retro_variable *variables)
 	}
 }
 
-static void Callback_SetVariableUpdate(bool *update)
+static void Callback_SetVariableUpdate(bool *update) /* TODO: it's GET */
 {
 	*update = variables_modified;
 	variables_modified = cc_false;
@@ -689,7 +828,7 @@ static int16_t Callback_InputState(unsigned int port, unsigned int device, unsig
 * Main *
 *******/
 
-cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_frames_per_second)
+cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_frames_per_second)
 {
 	const char *forward_slash;
 #ifdef _WIN32
@@ -701,7 +840,6 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 
 	/* Calculate some paths which will be needed later */
 	core_path = SDL_strdup(_core_path);
-	game_path = SDL_strdup(_game_path);
 
 	/* TODO: For now, we're just assuming that the user passed an absolute path */
 /*	if (realpath(core_path, libretro_path) == NULL)
@@ -739,10 +877,6 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 		}
 		else
 		{
-			struct retro_system_info system_info;
-			struct retro_game_info game_info;
-			bool game_loaded;
-
 			/* Set default pixel format */
 			SetPixelFormat(RETRO_PIXEL_FORMAT_0RGB1555);
 
@@ -761,130 +895,7 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 			core.retro_set_input_poll(Callback_InputPoll);
 			core.retro_set_input_state(Callback_InputState);
 
-			/* Grab some info for later */
-			core.retro_get_system_info(&system_info);
-
-			/* Load the game (TODO: handle cores that don't need supplied game data) */
-			/* TODO: Move this to its own function or something */
-			game_info.path = game_path;
-			game_info.data = NULL;
-			game_info.size = 0;
-			game_info.meta = NULL;
-
-			game_loaded = false;
-
-			{
-#ifdef ENABLE_LIBZIP
-			/* If the file is a zip archive, then try extracting a useable file.
-			   If it isn't, just assume it's a plain ROM and load it directly. */
-			zip_t* const zip = zip_open(game_path, ZIP_RDONLY, NULL);
-
-			if (zip != NULL)
-			{
-				zip_int64_t i;
-
-				const zip_int64_t total_files = zip_get_num_entries(zip, 0);
-
-				for (i = 0; i < total_files; ++i)
-				{
-					zip_stat_t stat;
-					if (zip_stat_index(zip, i, 0, &stat) == 0 && stat.valid & ZIP_STAT_SIZE)
-					{
-						zip_file_t *zip_file = zip_fopen_index(zip, i, 0);
-
-						if (zip_file != NULL)
-						{
-							game_buffer = (unsigned char*)SDL_malloc(stat.size);
-
-							if (game_buffer != NULL)
-							{
-								game_info.data = game_buffer;
-								game_info.size = stat.size;
-
-								zip_fread(zip_file, game_buffer, game_info.size);
-
-								if (system_info.need_fullpath)
-								{
-									/* Mesen is weird and demands a file path even for zipped files,
-									   so extract the ROM to a proper file and give Meson the path to it. */
-									char *temporary_filename;
-
-									SDL_asprintf(&temporary_filename, "%stemp", pref_path);
-
-									if (temporary_filename == NULL)
-									{
-										PrintError("Could not obtain temporary filename");
-									}
-									else
-									{
-										SDL_RWops* const file = SDL_RWFromFile(temporary_filename, "wb");
-
-										if (file == NULL)
-										{
-											PrintError("Could not open temporary file '%s' for writing", temporary_filename);
-										}
-										else
-										{
-											SDL_RWwrite(file, game_buffer, 1, game_info.size);
-											SDL_RWclose(file);
-
-											/* We no longer need the buffer, so free it. */
-											SDL_free(game_buffer);
-											game_buffer = NULL;
-
-											/* Finally, load the extracted ROM file. */
-											game_info.path = temporary_filename;
-											game_loaded = core.retro_load_game(&game_info);
-										}
-
-										SDL_free(temporary_filename);
-									}
-								}
-								else
-								{
-									/* The libretro core is sane, so we can just give it the memory buffer. */
-									game_loaded = core.retro_load_game(&game_info);
-								}
-
-								if (game_loaded)
-								{
-									zip_fclose(zip_file);
-									break;
-								}
-
-								SDL_free(game_buffer);
-							}
-
-							zip_fclose(zip_file);
-						}
-					}
-				}
-
-				zip_close(zip);
-			}
-			else
-#endif
-			{
-				if (system_info.need_fullpath)
-				{
-					game_loaded = core.retro_load_game(&game_info);
-				}
-				else
-				{
-					if (ReadFileToAllocatedBuffer(game_path, &game_buffer, &game_info.size))
-					{
-						game_info.data = game_buffer;
-						game_loaded = core.retro_load_game(&game_info);
-					}
-					else
-					{
-						PrintError("Could not open file '%s'", game_path);
-					}
-				}
-			}
-			}
-
-			if (!game_loaded)
+			if (!LoadGame(game_path))
 			{
 				PrintError("retro_load_game failed");
 			}
@@ -919,10 +930,8 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 					return cc_true;
 				}
 
-				core.retro_unload_game();
+				UnloadGame();
 			}
-
-			SDL_free(game_buffer);
 
 			core.retro_deinit();
 		}
@@ -931,7 +940,6 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *
 	}
 
 	SDL_free(core_path);
-	SDL_free(game_path);
 	SDL_free(pref_path);
 	SDL_free(save_file_path);
 
@@ -962,16 +970,13 @@ void CoreRunner_Deinit(void)
 
 	Video_FramebufferDestroy(&core_framebuffer);
 
-	core.retro_unload_game();
-
-	SDL_free(game_buffer);
+	UnloadGame();
 
 	core.retro_deinit();
 
 	UnloadCore(&core);
 
 	SDL_free(core_path);
-	SDL_free(game_path);
 	SDL_free(pref_path);
 	SDL_free(save_file_path);
 
