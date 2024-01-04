@@ -429,14 +429,14 @@ void Renderer_TextureUpdate(Renderer_Texture *texture, const void *pixels, const
 
 	if (texture->format == VIDEO_FORMAT_A8)
 	{
-		unsigned char *rgba_pixels = (unsigned char*)SDL_malloc(rect->width * rect->height * 2);
+		unsigned char *converted_pixels = (unsigned char*)SDL_malloc(rect->width * rect->height * 2);
 
-		if (rgba_pixels != NULL)
+		if (converted_pixels != NULL)
 		{
 			size_t y;
 
-			unsigned char *rgba_pointer = rgba_pixels;
-			const unsigned char *pixels_pointer = (const unsigned char*)pixels;
+			unsigned char *output_pointer = converted_pixels;
+			const unsigned char *input_pointer = (const unsigned char*)pixels;
 
 			for (y = 0; y < rect->height; ++y)
 			{
@@ -444,14 +444,44 @@ void Renderer_TextureUpdate(Renderer_Texture *texture, const void *pixels, const
 
 				for (x = 0; x < rect->width; ++x)
 				{
-					*rgba_pointer++ = 0xFF;
-					*rgba_pointer++ = *pixels_pointer++;
+					*output_pointer++ = 0xFF;
+					*output_pointer++ = *input_pointer++;
 				}
 			}
 
-			glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->width, rect->height, TextureFormat(texture->format), TextureType(texture->format), rgba_pixels);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->width, rect->height, TextureFormat(texture->format), TextureType(texture->format), converted_pixels);
 
-			SDL_free(rgba_pixels);
+			SDL_free(converted_pixels);
+		}
+	}
+	else if (texture->format == VIDEO_FORMAT_XRGB8888)
+	{
+		unsigned char *converted_pixels = (unsigned char*)SDL_malloc(rect->width * rect->height * 4);
+
+		if (converted_pixels != NULL)
+		{
+			size_t y;
+
+			unsigned char *output_pointer = converted_pixels;
+			const GLuint *input_pointer = (const GLuint*)pixels;
+
+			for (y = 0; y < rect->height; ++y)
+			{
+				size_t x;
+
+				for (x = 0; x < rect->width; ++x)
+				{
+					const GLuint pixel = *input_pointer++;
+					*output_pointer++ = (pixel >> 8 * 2) & 0xFF;
+					*output_pointer++ = (pixel >> 8 * 1) & 0xFF;
+					*output_pointer++ = (pixel >> 8 * 0) & 0xFF;
+					*output_pointer++ = (pixel >> 8 * 3) & 0xFF;
+				}
+			}
+
+			glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->width, rect->height, TextureFormat(texture->format), TextureType(texture->format), converted_pixels);
+
+			SDL_free(converted_pixels);
 		}
 	}
 	else
@@ -554,7 +584,7 @@ cc_bool Renderer_FramebufferCreateSoftware(Renderer_Framebuffer* const framebuff
 
 cc_bool Renderer_FramebufferCreateHardware(Renderer_Framebuffer* const framebuffer, const size_t width, const size_t height, const cc_bool depth, const cc_bool stencil)
 {
-	PrintDebug("width %u height %u", (unsigned int)width, (unsigned int)height);
+	PrintDebug("width %u height %u", (unsigned int)width, (unsigned int)height); /* TODO: Remove this */
 	if (Renderer_TextureCreate(&framebuffer->texture, width, height, VIDEO_FORMAT_XRGB8888, cc_false))
 	{
 		framebuffer->depth_renderbuffer_id = 0;
