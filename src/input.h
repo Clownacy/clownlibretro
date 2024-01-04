@@ -10,8 +10,15 @@ typedef struct Retropad
 	{
 		cc_bool pressed;
 		cc_bool held;
-		cc_bool raw;
+		short axis;
 	} buttons[16];
+	struct
+	{
+		short axis[2];
+	} sticks[2];
 } Retropad;
 
 extern Retropad retropad;
+
+void Input_SetButtonDigital(unsigned int index, cc_bool held);
+void Input_SetButtonAnalog(unsigned int index, short axis);

@@ -747,8 +747,36 @@ static int16_t Callback_InputState(unsigned int port, unsigned int device, unsig
 		}
 	}
 
-	if (port == 0 && device == RETRO_DEVICE_JOYPAD)
-		return retropad.buttons[id].held;
+	if (port == 0)
+	{
+		switch (device)
+		{
+			case RETRO_DEVICE_JOYPAD:
+				if (id < CC_COUNT_OF(retropad.buttons))
+					return retropad.buttons[id].held;
+
+				break;
+
+			case RETRO_DEVICE_ANALOG:
+				switch (index)
+				{
+					case RETRO_DEVICE_INDEX_ANALOG_BUTTON:
+						if (id < CC_COUNT_OF(retropad.buttons))
+							return retropad.buttons[id].axis;
+
+						break;
+
+					case RETRO_DEVICE_INDEX_ANALOG_LEFT:
+					case RETRO_DEVICE_INDEX_ANALOG_RIGHT:
+						if (index < CC_COUNT_OF(retropad.sticks) && id < CC_COUNT_OF(retropad.sticks[index].axis))
+							return retropad.sticks[index].axis[id];
+
+						break;
+				}
+
+				break;
+		}
+	}
 
 	return 0;
 }

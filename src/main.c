@@ -164,6 +164,10 @@ int main(int argc, char **argv)
 					{
 						SDL_Event event;
 						size_t i;
+						cc_bool previous_held_buttons[CC_COUNT_OF(retropad.buttons)];
+
+						for (i = 0; i < CC_COUNT_OF(previous_held_buttons); ++i)
+							previous_held_buttons[i] = retropad.buttons[i].held;
 
 						/* Handle events */
 						while (SDL_PollEvent(&event))
@@ -195,6 +199,7 @@ int main(int argc, char **argv)
 											alt_held = event.key.state == SDL_PRESSED;
 											break;
 
+											/* TODO: Move both of these keys' actions to the options menu instead of them being hotkeys. */
 										case SDLK_F1:
 											if (event.key.state == SDL_PRESSED)
 											{
@@ -223,59 +228,59 @@ int main(int argc, char **argv)
 									switch (event.key.keysym.scancode)
 									{
 										case SDL_SCANCODE_W:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_A:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_S:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_D:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_P:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_O:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_0:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_9:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_8:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_7:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_L:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_MINUS:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_EQUALS:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_SEMICOLON:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3].held = event.key.state == SDL_PRESSED;
 											break;
 
 										case SDL_SCANCODE_RETURN:
@@ -288,13 +293,13 @@ int main(int argc, char **argv)
 											}
 											else
 											{
-												retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START].raw = event.key.state == SDL_PRESSED;
+												retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START].held = event.key.state == SDL_PRESSED;
 											}
 
 											break;
 
 										case SDL_SCANCODE_BACKSPACE:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].raw = event.key.state == SDL_PRESSED;
+											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].held = event.key.state == SDL_PRESSED;
 											break;
 
 
@@ -312,82 +317,70 @@ int main(int argc, char **argv)
 
 								case SDL_CONTROLLERBUTTONDOWN:
 								case SDL_CONTROLLERBUTTONUP:
+								{
+									unsigned int retropad_index = -1;
+
 									switch (event.cbutton.button)
 									{
-										case SDL_CONTROLLER_BUTTON_A:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_B].raw = event.cbutton.state == SDL_PRESSED;
-											break;
+									#define DO_BUTTON(INPUT, OUTPUT)\
+										case INPUT:\
+											retropad_index = OUTPUT;\
+											break
 
-										case SDL_CONTROLLER_BUTTON_B:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_A].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_X:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_Y].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_Y:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_X].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_BACK:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_SELECT].raw = event.cbutton.state == SDL_PRESSED;
-											break;
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_A, RETRO_DEVICE_ID_JOYPAD_B);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_B, RETRO_DEVICE_ID_JOYPAD_A);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_X, RETRO_DEVICE_ID_JOYPAD_Y);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_Y, RETRO_DEVICE_ID_JOYPAD_X);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_BACK, RETRO_DEVICE_ID_JOYPAD_SELECT);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_START, RETRO_DEVICE_ID_JOYPAD_START);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_LEFTSTICK, RETRO_DEVICE_ID_JOYPAD_L3);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_RIGHTSTICK, RETRO_DEVICE_ID_JOYPAD_R3);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_LEFTSHOULDER, RETRO_DEVICE_ID_JOYPAD_L);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, RETRO_DEVICE_ID_JOYPAD_R);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_DPAD_UP, RETRO_DEVICE_ID_JOYPAD_UP);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_DPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_DOWN);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_DPAD_LEFT, RETRO_DEVICE_ID_JOYPAD_LEFT);
+										DO_BUTTON(SDL_CONTROLLER_BUTTON_DPAD_RIGHT, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+									#undef DO_BUTTON
 
 										case SDL_CONTROLLER_BUTTON_GUIDE:
 											if (event.cbutton.state == SDL_PRESSED)
 												ToggleMenu();
 
 											break;
-
-										case SDL_CONTROLLER_BUTTON_START:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_START].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_LEFTSTICK:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L3].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R3].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_DPAD_UP:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_UP].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_DOWN].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_LEFT].raw = event.cbutton.state == SDL_PRESSED;
-											break;
-
-										case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT].raw = event.cbutton.state == SDL_PRESSED;
-											break;
 									}
 
+									if (retropad_index != (unsigned int)-1)
+										Input_SetButtonDigital(retropad_index, event.cbutton.state == SDL_PRESSED);
+
 									break;
+								}
 
 								case SDL_CONTROLLERAXISMOTION:
 									switch (event.caxis.axis)
 									{
 										case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_L2].raw = event.caxis.value >= 32767 / 4;
+											Input_SetButtonAnalog(RETRO_DEVICE_ID_JOYPAD_L2, event.caxis.value);
 											break;
 
 										case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-											retropad.buttons[RETRO_DEVICE_ID_JOYPAD_R2].raw = event.caxis.value >= 32767 / 4;
+											Input_SetButtonAnalog(RETRO_DEVICE_ID_JOYPAD_R2, event.caxis.value);
+											break;
+
+										case SDL_CONTROLLER_AXIS_LEFTX:
+											retropad.sticks[0].axis[0] = event.caxis.value;
+											break;
+
+										case SDL_CONTROLLER_AXIS_LEFTY:
+											retropad.sticks[0].axis[1] = event.caxis.value;
+											break;
+
+										case SDL_CONTROLLER_AXIS_RIGHTX:
+											retropad.sticks[1].axis[0] = event.caxis.value;
+											break;
+
+										case SDL_CONTROLLER_AXIS_RIGHTY:
+											retropad.sticks[1].axis[1] = event.caxis.value;
 											break;
 									}
 
@@ -399,11 +392,8 @@ int main(int argc, char **argv)
 							}
 						}
 
-						for (i = 0; i < sizeof(retropad.buttons) / sizeof(retropad.buttons[0]); ++i)
-						{
-							retropad.buttons[i].pressed = retropad.buttons[i].raw != retropad.buttons[i].held && retropad.buttons[i].raw;
-							retropad.buttons[i].held = retropad.buttons[i].raw;
-						}
+						for (i = 0; i < CC_COUNT_OF(retropad.buttons); ++i)
+							retropad.buttons[i].pressed = retropad.buttons[i].held && !previous_held_buttons[i];
 
 						if (menu_open)
 						{
