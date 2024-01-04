@@ -3,10 +3,17 @@ cmake_minimum_required(VERSION 3.0...3.14)
 option(CLOWNLIBRETRO_STB_TRUETYPE_FONT_RENDERER "Use stb_truetype as the font renderer instead of FreeType" OFF)
 set(CLOWNLIBRETRO_RENDERER SDL2 CACHE STRING "Which rendering API to use")
 set_property(CACHE CLOWNLIBRETRO_RENDERER PROPERTY STRINGS SDL2 OPENGL3 OPENGLES2)
+option(CLOWNLIBRETRO_DYNAMIC "Produce an executable that dynamically-links with its cores, otherwise produce a static library" ON)
 
 project(clownlibretro LANGUAGES C)
 
-add_executable(clownlibretro
+if(CLOWNLIBRETRO_DYNAMIC)
+	add_executable(clownlibretro)
+else()
+	add_library(clownlibretro)
+endif()
+
+target_sources(clownlibretro PRIVATE
 	"src/audio.c"
 	"src/audio.h"
 	"src/core_runner.c"
@@ -40,6 +47,14 @@ if(CLOWNLIBRETRO_STB_TRUETYPE_FONT_RENDERER)
 else()
 	find_package(Freetype REQUIRED)
 	target_link_libraries(clownlibretro PRIVATE Freetype::Freetype)
+endif()
+
+if(CLOWNLIBRETRO_DYNAMIC)
+	target_compile_definitions(clownlibretro PRIVATE DYNAMIC_CORE)
+	target_sources(clownlibretro PRIVATE
+		"src/core_loader.c"
+		"src/core_loader.h"
+	)
 endif()
 
 find_package(libzip)

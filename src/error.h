@@ -5,6 +5,12 @@
 
 #include "clowncommon/clowncommon.h"
 
+/* Namespacing, to prevent linker conflicts with static cores. */
+#define PrintDebug ClownLibretro_PrintDebug
+#define PrintInfo ClownLibretro_PrintInfo
+#define PrintWarning ClownLibretro_PrintWarning
+#define PrintError ClownLibretro_PrintError
+
 void PrintDebugV(const char* const format, va_list args);
 void PrintInfoV(const char* const format, va_list args);
 void PrintWarningV(const char* const format, va_list args);

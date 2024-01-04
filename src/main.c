@@ -115,10 +115,12 @@ int main(int argc, char **argv)
 
 	if (argc < 2)
 	{
+#ifdef DYNAMIC_CORE
 		PrintError("Core path not specified");
 	}
 	else if (argc < 3)
 	{
+#endif
 		PrintError("Game path not specified");
 	}
 	else
@@ -143,7 +145,11 @@ int main(int argc, char **argv)
 
 				Menu_Init(Video_GetDPIScale());
 
-				if (!CoreRunner_Init(argv[1], argv[2], &frames_per_second))
+				if (!CoreRunner_Init(argv[1],
+				#ifdef DYNAMIC_CORE
+					argv[2],
+				#endif
+					&frames_per_second))
 				{
 					PrintError("CoreRunner_Init failed");
 				}

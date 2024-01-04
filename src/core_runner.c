@@ -11,6 +11,9 @@
 #include "SDL.h"
 
 #include "audio.h"
+#ifdef DYNAMIC_CORE
+	#include "core_loader.h"
+#endif
 #include "error.h"
 #include "file.h"
 #include "input.h"
@@ -23,32 +26,6 @@
 typedef struct Core
 { 
 	void *handle;
-
-	void (*retro_set_environment)(retro_environment_t);
-	void (*retro_set_video_refresh)(retro_video_refresh_t);
-	void (*retro_set_audio_sample)(retro_audio_sample_t);
-	void (*retro_set_audio_sample_batch)(retro_audio_sample_batch_t);
-	void (*retro_set_input_poll)(retro_input_poll_t);
-	void (*retro_set_input_state)(retro_input_state_t);
-	void (*retro_init)(void);
-	void (*retro_deinit)(void);
-	unsigned int (*retro_api_version)(void);
-	void (*retro_get_system_info)(struct retro_system_info *info);
-	void (*retro_get_system_av_info)(struct retro_system_av_info *info);
-	void (*retro_set_controller_port_device)(unsigned int port, unsigned int device);
-	void (*retro_reset)(void);
-	void (*retro_run)(void);
-	size_t (*retro_serialize_size)(void);
-	bool (*retro_serialize)(void *data, size_t size);
-	bool (*retro_unserialize)(const void *data, size_t size);
-	void (*retro_cheat_reset)(void);
-	void (*retro_cheat_set)(unsigned int index, bool enabled, const char *code);
-	bool (*retro_load_game)(const struct retro_game_info *game);
-	bool (*retro_load_game_special)(unsigned int game_type, const struct retro_game_info *info, size_t num_info);
-	void (*retro_unload_game)(void);
-	unsigned int (*retro_get_region)(void);
-	void* (*retro_get_memory_data)(unsigned int id);
-	size_t (*retro_get_memory_size)(unsigned int id);
 
 	retro_hw_context_reset_t context_reset;
 	retro_hw_context_reset_t context_destroy;
@@ -63,7 +40,9 @@ static CoreRunnerScreenType screen_type;
 
 static double *frames_per_second;
 
+#ifdef DYNAMIC_CORE
 static char *core_path;
+#endif
 static char *game_path, *game_path_override;
 /*static char libretro_path[PATH_MAX];*/
 static char *pref_path;
@@ -107,7 +86,7 @@ static cc_bool BootGame(void)
 	game_info.size = game_buffer_size;
 	game_info.meta = NULL;
 
-	return core.retro_load_game(&game_info) ? cc_true : cc_false;
+	return retro_load_game(&game_info) ? cc_true : cc_false;
 }
 
 static cc_bool LoadGame(const char* const _game_path)
@@ -120,7 +99,7 @@ static cc_bool LoadGame(const char* const _game_path)
 #endif
 
 	/* Grab some info for later */
-	core.retro_get_system_info(&system_info);
+	retro_get_system_info(&system_info);
 
 	game_path = SDL_strdup(_game_path);
 	game_path_override = NULL;
@@ -225,67 +204,11 @@ static cc_bool LoadGame(const char* const _game_path)
 
 void UnloadGame(void)
 {
-	core.retro_unload_game();
+	retro_unload_game();
 
 	SDL_free(game_path);
 	SDL_free(game_path_override);
 	SDL_free(game_buffer);
-}
-
-/*************
-* Core stuff *
-*************/
-
-static cc_bool LoadCore(Core *core, const char *filename)
-{
-	core->handle = SDL_LoadObject(filename);
-
-	if (core->handle == NULL)
-		return cc_false;
-
-#define DO_FUNCTION(FUNCTION_NAME)\
-	*(void**)&core->FUNCTION_NAME = SDL_LoadFunction(core->handle, #FUNCTION_NAME);\
-\
-	if (core->FUNCTION_NAME == NULL)\
-		return cc_false
-
-	DO_FUNCTION(retro_set_environment);
-	DO_FUNCTION(retro_set_video_refresh);
-	DO_FUNCTION(retro_set_audio_sample);
-	DO_FUNCTION(retro_set_audio_sample_batch);
-	DO_FUNCTION(retro_set_input_poll);
-	DO_FUNCTION(retro_set_input_state);
-	DO_FUNCTION(retro_init);
-	DO_FUNCTION(retro_deinit);
-	DO_FUNCTION(retro_api_version);
-	DO_FUNCTION(retro_get_system_info);
-	DO_FUNCTION(retro_get_system_av_info);
-	DO_FUNCTION(retro_set_controller_port_device);
-	DO_FUNCTION(retro_reset);
-	DO_FUNCTION(retro_run);
-	DO_FUNCTION(retro_serialize_size);
-	DO_FUNCTION(retro_serialize);
-	DO_FUNCTION(retro_unserialize);
-	DO_FUNCTION(retro_cheat_reset);
-	DO_FUNCTION(retro_cheat_set);
-	DO_FUNCTION(retro_load_game);
-	DO_FUNCTION(retro_load_game_special);
-	DO_FUNCTION(retro_unload_game);
-	DO_FUNCTION(retro_get_region);
-	DO_FUNCTION(retro_get_memory_data);
-	DO_FUNCTION(retro_get_memory_size);
-#undef DO_FUNCTION
-
-	core->context_reset = NULL;
-	core->context_destroy = NULL;
-	core->hardware_render = cc_false;
-
-	return cc_true;
-}
-
-static void UnloadCore(Core *core)
-{
-	SDL_UnloadObject(core->handle);
 }
 
 /****************
@@ -524,7 +447,11 @@ static void Callback_SetVariableUpdate(bool *update) /* TODO: it's GET */
 
 static void Callback_GetLibretroPath(const char **path)
 {
+#ifdef DYNAMIC_CORE
 	*path = core_path;
+#else
+	*path = NULL;
+#endif
 }
 
 static void Callback_GetInputDeviceCapabilities(uint64_t *capabilities)
@@ -830,7 +757,11 @@ static int16_t Callback_InputState(unsigned int port, unsigned int device, unsig
 * Main *
 *******/
 
-cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_frames_per_second)
+cc_bool CoreRunner_Init(
+#ifdef DYNAMIC_CORE
+	const char *_core_path,
+#endif
+	const char *game_path, double *_frames_per_second)
 {
 	const char *forward_slash;
 #ifdef _WIN32
@@ -840,12 +771,14 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_
 
 	frames_per_second = _frames_per_second;
 
+#ifdef DYNAMIC_CORE
 	/* Calculate some paths which will be needed later */
 	core_path = SDL_strdup(_core_path);
 
 	/* TODO: For now, we're just assuming that the user passed an absolute path */
 /*	if (realpath(core_path, libretro_path) == NULL)
 		PrintError("realpath failed");*/
+#endif
 
 	pref_path = SDL_GetPrefPath("clownacy", "clownlibretro");
 
@@ -866,14 +799,16 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_
 
 	SDL_asprintf(&save_file_path, "%s/%s.sav", pref_path, game_filename);
 
+#ifdef DYNAMIC_CORE
 	/* Load the core, set some callbacks, and initialise it */
-	if (!LoadCore(&core, core_path))
+	if (!LoadCore(core_path))
 	{
 		PrintError("Could not load core");
 	}
 	else
+#endif
 	{
-		if (core.retro_api_version() != RETRO_API_VERSION)
+		if (retro_api_version() != RETRO_API_VERSION)
 		{
 			PrintError("Core targets an incompatible API");
 		}
@@ -883,19 +818,22 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_
 			SetPixelFormat(RETRO_PIXEL_FORMAT_0RGB1555);
 
 			core_framebuffer_bottom_left_origin = cc_false;
+			core.context_reset = NULL;
+			core.context_destroy = NULL;
+			core.hardware_render = cc_false;
 
 			/* Registers callbacks with the libretro core */
-			core.retro_set_environment(Callback_Environment);
+			retro_set_environment(Callback_Environment);
 
 			/* Mesen requires that this be called before retro_set_video_refresh. */
 			/* TODO: Tell Meson's devs to fix their core or tell libretro's devs to fix their API. */
-			core.retro_init();
+			retro_init();
 
-			core.retro_set_video_refresh(Callback_VideoRefresh);
-			core.retro_set_audio_sample(Callback_AudioSample);
-			core.retro_set_audio_sample_batch(Callback_AudioSampleBatch);
-			core.retro_set_input_poll(Callback_InputPoll);
-			core.retro_set_input_state(Callback_InputState);
+			retro_set_video_refresh(Callback_VideoRefresh);
+			retro_set_audio_sample(Callback_AudioSample);
+			retro_set_audio_sample_batch(Callback_AudioSampleBatch);
+			retro_set_input_poll(Callback_InputPoll);
+			retro_set_input_state(Callback_InputState);
 
 			if (!LoadGame(game_path))
 			{
@@ -906,7 +844,7 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_
 				/* Grab more info that will come in handy later */
 				struct retro_system_av_info system_av_info;
 
-				core.retro_get_system_av_info(&system_av_info);
+				retro_get_system_av_info(&system_av_info);
 
 				if (!SetSystemAVInfo(&system_av_info))
 				{
@@ -915,8 +853,8 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_
 				else
 				{
 					/* Read save data from file */
-					void* const save_ram = core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
-					const size_t save_ram_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+					void* const save_ram = retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+					const size_t save_ram_size = retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
 
 					if (save_ram != NULL && save_ram_size != 0)
 					{
@@ -955,13 +893,17 @@ cc_bool CoreRunner_Init(const char *_core_path, const char *game_path, double *_
 				UnloadGame();
 			}
 
-			core.retro_deinit();
+			retro_deinit();
 		}
 
-		UnloadCore(&core);
+#ifdef DYNAMIC_CORE
+		UnloadCore();
+#endif
 	}
 
+#ifdef DYNAMIC_CORE
 	SDL_free(core_path);
+#endif
 	SDL_free(pref_path);
 	SDL_free(save_file_path);
 
@@ -972,8 +914,8 @@ void CoreRunner_Deinit(void)
 {
 	size_t i;
 
-	void* const save_ram = core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
-	const size_t save_ram_size = core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+	void* const save_ram = retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+	const size_t save_ram_size = retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
 
 	if (save_ram != NULL && save_ram_size != 0)
 	{
@@ -994,11 +936,15 @@ void CoreRunner_Deinit(void)
 
 	UnloadGame();
 
-	core.retro_deinit();
+	retro_deinit();
 
-	UnloadCore(&core);
+#ifdef DYNAMIC_CORE
+	UnloadCore();
+#endif
 
+#ifdef DYNAMIC_CORE
 	SDL_free(core_path);
+#endif
 	SDL_free(pref_path);
 	SDL_free(save_file_path);
 
@@ -1023,7 +969,7 @@ void CoreRunner_Deinit(void)
 cc_bool CoreRunner_Update(void)
 {
 	/* Update the core */
-	core.retro_run();
+	retro_run();
 
 	return !quit;
 }

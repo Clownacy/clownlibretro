@@ -25,7 +25,11 @@ typedef enum CoreRunnerScreenType
 	CORE_RUNNER_SCREEN_TYPE_PIXEL_PERFECT_WITH_SCANLINES
 } CoreRunnerScreenType;
 
-cc_bool CoreRunner_Init(const char *_core_path, const char *_game_path, double *_frames_per_second);
+cc_bool CoreRunner_Init(
+#ifdef DYNAMIC_CORE
+	const char *_core_path,
+#endif
+	const char *_game_path, double *_frames_per_second);
 void CoreRunner_Deinit(void);
 cc_bool CoreRunner_Update(void);
 void CoreRunner_Draw(void);
