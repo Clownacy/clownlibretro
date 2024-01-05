@@ -1,7 +1,5 @@
 #include "error.h"
 
-#include <GLES2/gl2.h>
-
 #include <stdio.h>
 
 #define DO_PRINTER(CATEGORY)\
