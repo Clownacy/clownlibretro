@@ -957,11 +957,6 @@ void CoreRunner_Deinit(void)
 	if (core.hardware_render)
 		core.context_destroy();
 
-	if (audio_stream_created)
-		Audio_StreamDestroy(&audio_stream);
-
-	Video_FramebufferDestroy(&core_framebuffer);
-
 	UnloadGame();
 
 	retro_deinit();
@@ -969,6 +964,11 @@ void CoreRunner_Deinit(void)
 #ifdef DYNAMIC_CORE
 	UnloadCore();
 #endif
+
+	if (audio_stream_created)
+		Audio_StreamDestroy(&audio_stream);
+
+	Video_FramebufferDestroy(&core_framebuffer);
 
 #ifdef DYNAMIC_CORE
 	SDL_free(core_path);
